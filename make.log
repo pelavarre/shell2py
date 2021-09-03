@@ -1,5 +1,8 @@
 :
 :
+: copied from https://github.com/pelavarre/shell2py/blob/main/make.log
+:
+:
 echo | python3 -m pdb bin/shell2py.py
 > /Users/plavarre/Public/shell2py/bin/shell2py.py(3)<module>()
 -> """

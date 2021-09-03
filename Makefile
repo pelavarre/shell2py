@@ -4,10 +4,12 @@ V=shell2py
 
 default:
 	clear
+	make banner py black flake8 go 2>&1 |tee make.log
+
+banner:
+	:
 	:
 	: copied from https://github.com/pelavarre/shell2py/blob/main/make.log
-	:
-	make py black flake8 go 2>&1 |tee make.log
 
 setup:
 	exit 3
