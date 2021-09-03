@@ -1,0 +1,5 @@
+#!/bin/sh
+
+python3 $0.py "$@"
+
+# copied by: git clone https://github.com/pelavarre/shell2py.git

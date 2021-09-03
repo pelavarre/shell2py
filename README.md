@@ -9,8 +9,9 @@ Then it says
 
     import os
 
-    filenames = os.listdir()
+    filenames = sorted(os.listdir())
     for filename in filenames:
-        print(filename)
+        if not filename.startswith("."):  # if not hidden
+            print(filename)
 
 \- copied by:  `git clone https://github.com/pelavarre/shell2py.git`
