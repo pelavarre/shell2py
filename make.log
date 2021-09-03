@@ -50,5 +50,6 @@ Makefile
 README.md
 bin
 make.log
+pips
 :
 :

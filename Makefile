@@ -4,26 +4,29 @@ V=shell2py
 
 default:
 	clear
+	:
+	: copied from https://github.com/pelavarre/shell2py/blob/main/make.log
+	:
 	make py black flake8 go 2>&1 |tee make.log
 
 setup:
-	exit
+	exit 3
 
 	mkdir -p ~/.venvs
 	cd ~/.venvs/
-	rm -fr pips/
+	rm -fr pips/  # casually destructive
 	python3 -m venv --prompt PIPS pips
 
 	source pips/bin/activate  # doesn't work inside Makefile's
 
 	which pip
-	pip freeze |wc -l
+	pip freeze |wc -l  # often 0
 
 	pip install --upgrade pip
 	pip install --upgrade wheel
 	pip install --upgrade black
 	pip install --upgrade flake8
-	pip freeze |wc -l
+	pip freeze |wc -l  # often 12
 
 py:
 	:
