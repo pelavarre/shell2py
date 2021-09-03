@@ -6,9 +6,26 @@ Someday they might start publishing these fragments too
 
 import __main__
 import argparse
+import ast
 import difflib
 import os
 import sys
+
+
+# deffed in many files  # missing from docs.python.org
+def as_py_argv(words):
+    """Convert a List of Strings to the Python that means form an equal List"""
+
+    argv = [None] + words
+
+    rep = repr(argv)
+    if '"' not in rep:
+        rep = rep.replace("'", '"')
+
+    evalled = ast.literal_eval(rep)
+    assert evalled == argv, (evalled, argv)
+
+    return rep
 
 
 # deffed in many files  # missing from docs.python.org
@@ -64,7 +81,9 @@ def exit_unless_doc_eq(parser, file, doc):
         sys.exit(1)  # trust caller to log SystemExit exceptions well
 
 
+# deffed in many files  # missing from docs.python.org
 def shell_to_py(module, argv):
+    """Convert one Shell Line to Python, else Print the Help for it, else Exit Loudly"""
 
     file = os.path.basename(module.__file__)
     doc = module.__doc__
@@ -85,7 +104,9 @@ def shell_to_py(module, argv):
     return py
 
 
+# deffed in many files  # missing from docs.python.org
 def to_py_main(name, argv):
+    """Convert one Shell Line to Python and run it"""
 
     module = sys.modules[name]
     py = shell_to_py(module, argv=argv)

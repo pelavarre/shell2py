@@ -3,24 +3,71 @@
 : copied from https://github.com/pelavarre/shell2py/blob/main/make.log
 :
 :
-echo | python3 -m pdb bin/shell2py.py
+echo 'for P in bin/*.py; do echo | python3 -m pdb $P; done' |bash
+> /Users/plavarre/Public/shell2py/bin/_scraps_.py(1)<module>()
+-> """
+(Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/echo.py(3)<module>()
+-> """
+(Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/ls.py(3)<module>()
+-> """
+(Pdb) (Pdb)
 > /Users/plavarre/Public/shell2py/bin/shell2py.py(3)<module>()
 -> """
-(Pdb) (Pdb) 
+(Pdb) (Pdb)
 :
 :
 ~/.venvs/pips/bin/black bin/*.py
 All done! ✨ 🍰 ✨
-3 files left unchanged.
+4 files left unchanged.
 :
 :
 ~/.venvs/pips/bin/flake8 --max-line-length=999 --ignore=E203,W503 bin/*.py
 :
 :
-shell2py ls || :
+shell2py || echo "+ exit $?"
+usage: shell2py.py [-h] VERB [WORD [WORD ...]]
+shell2py.py: error: the following arguments are required: VERB
++ exit 2
+:
+shell2py -h
+usage: shell2py.py [-h] VERB [WORD [WORD ...]]
+
+translate the words, to python from bash
+
+positional arguments:
+  VERB        the first word of a shell line, being the program to run
+  WORD        another word of a shell line, being an arg of the program to run
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+examples:
+  shell2py -h  # show this help message and exit
+  shell2py ls -1  # name each file or dir inside the current dir
+:
+shell2py --help
+usage: shell2py.py [-h] VERB [WORD [WORD ...]]
+
+translate the words, to python from bash
+
+positional arguments:
+  VERB        the first word of a shell line, being the program to run
+  WORD        another word of a shell line, being an arg of the program to run
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+examples:
+  shell2py -h  # show this help message and exit
+  shell2py ls -1  # name each file or dir inside the current dir
+:
+:
+shell2py ls || echo "+ exit $?"
 usage: ls.py [--help] [-1]
 ls.py: error: need stronger translator
-:
++ exit 3
 :
 shell2py ls --help
 usage: ls.py [--help] [-1]
@@ -38,21 +85,57 @@ examples:
   ls.py --help  # show this help message and exit
   ls.py -1  # name each file or dir inside the current dir
 :
-:
-shell2py ls -1 |cat -n |expand
+shell2py ls -1 |cat -n |expand |sed 's,  *$,,'
      1  import os
-     2  
+     2
      3  filenames = sorted(os.listdir())
      4  for filename in filenames:
      5      if not filename.startswith("."):  # if not hidden
      6          print(filename)
-:
-:
-ls -1
+bin/ls.py -1
 Makefile
 README.md
 bin
 make.log
 pips
+:
+:
+shell2py echo 'Hello, Echo World!'
+import sys
+
+sys.argv = [None, "Hello, Echo World!"]  # delete this line to stop replacing the args
+
+sys.stderr.flush()  # unneeded if not also writing Stderr
+print(*sys.argv[1:])
+sys.stdout.flush()  # unneeded if exiting now
+bin/echo.py 'Hello, Echo World!'
+Hello, Echo World!
+:
+shell2py echo --v 'Hello,' 'Echo World!'
+import sys
+
+sys.argv = [None, "Hello,", "Echo World!"]  # delete this line to stop replacing the args
+
+for (index, arg) in enumerate(sys.argv):
+    if index:
+        print("{}: {!r}".format(index, arg))
+bin/echo.py --v 'Hello,' 'Echo World!'
+1: 'Hello,'
+2: 'Echo World!'
+:
+shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
+import sys
+
+sys.argv = [None, "⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮"]  # delete this line to stop replacing the args
+str_args = " ".join(sys.argv[1:])
+
+sys.stderr.flush()  # unneeded if not also writing Stderr
+sys.stdout.write(str_args)  # tada, no line break
+sys.stdout.flush()  # unneeded if exiting now
+bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
+00000000  e2 8c 83 20 e2 8c a5 20  e2 87 a7 20 e2 8c 98 20  |... ... ... ... |
+00000010  e2 86 90 20 e2 86 92 20  e2 86 93 20 e2 86 91 20  |... ... ... ... |
+00000020  e2 8e 8b 20 e2 87 a5 20  e2 8b ae                 |... ... ...|
+0000002b
 :
 :

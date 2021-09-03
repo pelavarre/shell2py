@@ -4,7 +4,7 @@ V=shell2py
 
 default:
 	clear
-	make banner py black flake8 go 2>&1 |tee make.log
+	make banner py black flake8 go 2>&1 |sed 's,  *$$,,' |tee make.log
 
 banner:
 	:
@@ -33,7 +33,7 @@ setup:
 py:
 	:
 	:
-	echo | python3 -m pdb $F
+	echo 'for P in bin/*.py; do echo | python3 -m pdb $$P; done' |bash
 
 black:
 	:
@@ -47,18 +47,37 @@ flake8:
 # --ignore=E203  # Black '[ : ]' rules over Flake8 E203 whitespace before ':'
 # --ignore=W503  # 2017 Pep 8 and Black over Flake8 W503 line break before binary op
 
-go:
+go: go_shell2py go_ls go_echo
 	:
 	:
-	$V ls || :
+
+go_shell2py:
 	:
+	:
+	$V || echo "+ exit $$?"
+	:
+	$V -h
+	:
+	$V --help
+
+go_ls:
+	:
+	:
+	$V ls || echo "+ exit $$?"
 	:
 	$V ls --help
 	:
+	$V ls -1 |cat -n |expand |sed 's,  *$$,,'
+	bin/ls.py -1
+
+go_echo:
 	:
-	$V ls -1 |cat -n |expand
 	:
+	$V echo 'Hello, Echo World!'
+	bin/echo.py 'Hello, Echo World!'
 	:
-	ls -1
+	$V echo --v 'Hello,' 'Echo World!'
+	bin/echo.py --v 'Hello,' 'Echo World!'
 	:
-	:
+	$V echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
+	bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
