@@ -14,7 +14,7 @@ quirks:
 
 examples:
   ls.py --help  # show this help message and exit
-  ls.py -1  # name each file or dir inside the current dir
+  ls -1  # name each file or dir inside the current dir
 """
 
 import sys
@@ -30,6 +30,18 @@ def main(argv=None):
 
 def bash2py(argv):
 
+    args = parse_ls_args(argv)
+    if args.help:
+        return ""
+
+    args_1 = vars(args)["1"]
+    if args_1:
+        py = ls_1()
+        return py
+
+
+def parse_ls_args(argv):
+
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__, drop_help=True)
     parser.add_argument(
         "--help", action="count", help="show this help message and exit"
@@ -40,13 +52,8 @@ def bash2py(argv):
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
     args = parser.parse_args(argv[1:])
-    if args.help:
-        return ""
 
-    args_1 = vars(args)["1"]
-    if args_1:
-        py = ls_1()
-        return py
+    return args
 
 
 def ls_1():

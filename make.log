@@ -10,6 +10,9 @@ echo 'for P in bin/*.py; do echo | python3 -m pdb $P; done' |bash
 > /Users/plavarre/Public/shell2py/bin/echo.py(3)<module>()
 -> """
 (Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/find.py(3)<module>()
+-> """
+(Pdb) (Pdb)
 > /Users/plavarre/Public/shell2py/bin/ls.py(3)<module>()
 -> """
 (Pdb) (Pdb)
@@ -20,7 +23,7 @@ echo 'for P in bin/*.py; do echo | python3 -m pdb $P; done' |bash
 :
 ~/.venvs/pips/bin/black bin/*.py
 All done! ✨ 🍰 ✨
-4 files left unchanged.
+5 files left unchanged.
 :
 :
 ~/.venvs/pips/bin/flake8 --max-line-length=999 --ignore=E203,W503 bin/*.py
@@ -66,7 +69,7 @@ examples:
 :
 shell2py ls || echo "+ exit $?"
 usage: ls.py [--help] [-1]
-ls.py: error: need stronger translator
+ls.py: error: need stronger translator, meanwhile the 'ls.py --help' examples do work
 + exit 3
 :
 shell2py ls --help
@@ -83,7 +86,7 @@ quirks:
 
 examples:
   ls.py --help  # show this help message and exit
-  ls.py -1  # name each file or dir inside the current dir
+  ls -1  # name each file or dir inside the current dir
 :
 shell2py ls -1 |cat -n |expand |sed 's,  *$,,'
      1  import os
@@ -97,7 +100,6 @@ Makefile
 README.md
 bin
 make.log
-pips
 :
 :
 shell2py echo 'Hello, Echo World!'
@@ -137,5 +139,128 @@ bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
 00000010  e2 86 90 20 e2 86 92 20  e2 86 93 20 e2 86 91 20  |... ... ... ... |
 00000020  e2 8e 8b 20 e2 87 a5 20  e2 8b ae                 |... ... ...|
 0000002b
+:
+:
+shell2py find -maxdepth 1 -type d
+import os
+
+def find(top):
+
+    print(top)
+    for (dirpath, dirnames, filenames) in os.walk(top):
+        depth = 1 + dirpath.count(os.sep)
+
+        if depth > 1:
+            continue
+
+        for dirname in dirnames:
+            found_dir = os.path.join(dirpath, dirname)
+
+            print(found_dir)
+
+
+find(top=".")
+bin/find.py -maxdepth 1 -type d |grep i
+./bin
+./.git
+:
+shell2py find -name '.?*'
+import os
+
+def find(top):
+
+    print(top)
+    for (dirpath, dirnames, filenames) in os.walk(top):
+
+        for dirname in dirnames:
+            found_dir = os.path.join(dirpath, dirname)
+            if not dirname.startswith("."):  # if Dir isn't hidden
+                continue
+
+            print(found_dir)
+
+        for filename in filenames:
+            found_file = os.path.join(dirpath, filename)
+            if not filename.startswith("."):  # if File isn't hidden
+                continue
+
+            print(found_file)
+
+find(top=".")
+bin/find.py -name '.?*' |head -3
+.
+./.git
+./.touched-for-test
+:
+shell2py find -name '.?*' -prune -o -print
+import os
+
+def find(top):
+
+    print(top)
+    for (dirpath, dirnames, filenames) in os.walk(top):
+
+        for dirname in dirnames:
+            found_dir = os.path.join(dirpath, dirname)
+            if dirname.startswith("."):  # if Dir is hidden
+                continue
+
+            print(found_dir)
+
+        for filename in filenames:
+            found_file = os.path.join(dirpath, filename)
+            if filename.startswith("."):  # if File is hidden
+                continue
+
+            print(found_file)
+
+find(top=".")
+bin/find.py -name '.?*' -prune -o -print |head -3
+.
+./bin
+./Makefile
+:
+shell2py find -type d
+import os
+
+def find(top):
+
+    print(top)
+    for (dirpath, dirnames, filenames) in os.walk(top):
+
+        for dirname in dirnames:
+            found_dir = os.path.join(dirpath, dirname)
+
+            print(found_dir)
+
+
+find(top=".")
+bin/find.py -type d |head -3
+.
+./bin
+./.git
+:
+shell2py find -type d -name '.?*' -prune -o -print
+import os
+
+def find(top):
+
+    print(top)
+    for (dirpath, dirnames, filenames) in os.walk(top):
+
+        for dirname in dirnames:
+            found_dir = os.path.join(dirpath, dirname)
+            if dirname.startswith("."):  # if Dir is hidden
+                continue
+
+            print(found_dir)
+
+
+find(top=".")
+bin/find.py -type d -name '.?*' -prune -o -print |head -3
+.
+./bin
+./bin/__pycache__
+:
 :
 :

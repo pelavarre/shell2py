@@ -35,6 +35,18 @@ def main(argv=None):
 
 def bash2py(argv):
 
+    args = parse_echo_args(argv)
+
+    if (args.n, args.verbose) == (None, None):
+        return echo(args.words)
+    elif (args.n, args.verbose) == (True, None):
+        return echo_n(args.words)
+    elif (args.n, args.verbose) == (None, True):
+        return echo_verbose(args.words)
+
+
+def parse_echo_args(argv):
+
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
 
     parser.add_argument(
@@ -55,12 +67,7 @@ def bash2py(argv):
 
     args = parser.parse_args(argv[1:])
 
-    if (args.n, args.verbose) == (None, None):
-        return echo(args.words)
-    elif (args.n, args.verbose) == (True, None):
-        return echo_n(args.words)
-    elif (args.n, args.verbose) == (None, True):
-        return echo_verbose(args.words)
+    return args
 
 
 def echo(words):

@@ -23,13 +23,14 @@ import _scraps_
 
 import echo
 
+import find
+
 import ls
 
 
-_ = echo
-_ = ls
+_ = (echo, find, ls)
 
-# TODO: import just what we need
+# TODO: import just what the args need
 
 
 # Offer the "--help" there, and also at "-h"
@@ -56,8 +57,11 @@ if not argv:
 
 # Translate one line of Shell
 
-args_verb = arg
-module = sys.modules[args_verb]
+verb = arg
+if verb.startswith("bin/") and verb.endswith(".py"):
+    verb = verb[len("bin/") :][: -len(".py")]  # such as "find" from "bin/find.py"
+
+module = sys.modules[verb]
 py = _scraps_.shell_to_py(module, argv=argv)
 print(py)
 

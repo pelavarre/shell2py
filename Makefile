@@ -2,14 +2,22 @@ D=bin
 F=bin/shell2py.py
 V=shell2py
 
+
 default:
 	clear
 	make banner py black flake8 go 2>&1 |sed 's,  *$$,,' |tee make.log
+
+
+secretly:
+	clear
+	make banner py black flake8 go
+
 
 banner:
 	:
 	:
 	: copied from https://github.com/pelavarre/shell2py/blob/main/make.log
+
 
 setup:
 	exit 3
@@ -30,15 +38,18 @@ setup:
 	pip install --upgrade flake8
 	pip freeze |wc -l  # often 12
 
+
 py:
 	:
 	:
 	echo 'for P in bin/*.py; do echo | python3 -m pdb $$P; done' |bash
 
+
 black:
 	:
 	:
 	~/.venvs/pips/bin/black $D/*.py
+
 
 flake8:
 	:
@@ -47,9 +58,11 @@ flake8:
 # --ignore=E203  # Black '[ : ]' rules over Flake8 E203 whitespace before ':'
 # --ignore=W503  # 2017 Pep 8 and Black over Flake8 W503 line break before binary op
 
-go: go_shell2py go_ls go_echo
+
+go: go_shell2py go_ls go_echo go_find
 	:
 	:
+
 
 go_shell2py:
 	:
@@ -60,6 +73,7 @@ go_shell2py:
 	:
 	$V --help
 
+
 go_ls:
 	:
 	:
@@ -69,6 +83,7 @@ go_ls:
 	:
 	$V ls -1 |cat -n |expand |sed 's,  *$$,,'
 	bin/ls.py -1
+
 
 go_echo:
 	:
@@ -81,3 +96,23 @@ go_echo:
 	:
 	$V echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
 	bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
+
+
+go_find:
+	:
+	:
+	$V find -maxdepth 1 -type d
+	bin/find.py -maxdepth 1 -type d |grep i
+	:
+	$V find -name '.?*'
+	bin/find.py -name '.?*' |head -3
+	:
+	$V find -name '.?*' -prune -o -print
+	bin/find.py -name '.?*' -prune -o -print |head -3
+	:
+	$V find -type d
+	bin/find.py -type d |head -3
+	:
+	$V find -type d -name '.?*' -prune -o -print
+	bin/find.py -type d -name '.?*' -prune -o -print |head -3
+	:

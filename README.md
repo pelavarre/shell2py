@@ -3,7 +3,10 @@ Let you paste fragments of Bash into Python, by cleaning up the syntax for you
 
 Like if you say
 
-    shell2py ls -1
+    git clone https://github.com/pelavarre/shell2py.git
+    cd shell2py/
+
+    bin/shell2py ls -1
 
 Then it says
 
