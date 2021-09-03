@@ -13,4 +13,4 @@ Then it says
     for filename in filenames:
         print(filename)
 
-\- copied by:  git clone https://github.com/pelavarre/shell2py.git
+\- copied by:  `git clone https://github.com/pelavarre/shell2py.git`
