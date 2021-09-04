@@ -143,8 +143,13 @@ def bash2py(argv):
   #endif
 
                         member_bytes = incoming.read()
+                        member_size = len(member_bytes)
+                        assert member_size == member.size, (member_size. member.size)
+
                         with open(outpath, "wb") as outgoing:
                             outgoing.write(member_bytes)
+
+                        # TODO: also extract the perms, stamp, and owns
 
   #if TAR_ADD_NOT_REPLACE
             if exists:
@@ -156,6 +161,8 @@ def bash2py(argv):
   #endif
 #endif
 
+#if TAR_EXTRACT
+#else
         def tar_member_details(member):
             """Return such as '-rw-r--r-- jqdoe/staff 8 2021-09-03 20:41 dir/a/b/e'"""
 
@@ -177,6 +184,8 @@ def bash2py(argv):
             return line
 
 
+#endif
+#if TAR_EXTRACT
         # deffed in many files  # missing from docs.python.org
         def stderr_print(*args, **kwargs):
             """Like Print, but flush don't write Stdout and do write and flush Stderr"""
@@ -186,6 +195,7 @@ def bash2py(argv):
             sys.stderr.flush()
 
             # else caller has to "{}\n".format(...) and flush
+#endif
 
 
         $FUNC($FILE_PATH)

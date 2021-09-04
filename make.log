@@ -324,15 +324,6 @@ def tar_member_details(member):
     return line
 
 
-# deffed in many files  # missing from docs.python.org
-def stderr_print(*args, **kwargs):
-    """Like Print, but flush don't write Stdout and do write and flush Stderr"""
-
-    sys.stdout.flush()
-    print(*args, **kwargs, file=sys.stderr)
-    sys.stderr.flush()
-
-    # else caller has to "{}\n".format(...) and flush
 
 
 tar_list("dir.tgz")
@@ -397,35 +388,19 @@ def tar_extract(filepath):
                 # Save the bytes of the member as a file
 
                 member_bytes = incoming.read()
+                member_size = len(member_bytes)
+                assert member_size == member.size, (member_size. member.size)
+
                 with open(outpath, "wb") as outgoing:
                     outgoing.write(member_bytes)
+
+                # TODO: also extract the perms, stamp, and owns
 
     if exists:
         stderr_print(
             "tar: Exiting with failure status due to previous errors"
         )
         sys.exit(2)
-
-
-def tar_member_details(member):
-    """Return such as '-rw-r--r-- jqdoe/staff 8 2021-09-03 20:41 dir/a/b/e'"""
-
-    d_perm = 'd' if member.isdir() else '-'
-    bits = ((9 * "0") + bin(member.mode)[len("0b"):])[-9:]
-    perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
-
-    owns = member.uname + os.sep + member.gname
-
-    size = member.size
-
-    when = dt.datetime.fromtimestamp(member.mtime)
-    stamp = when.strftime("%Y-%m-%d %H:%M")
-
-    name = (member.name + os.sep) if member.isdir() else member.name
-
-    line = "{} {} {} {} {}".format(perms, owns, size, stamp, name)
-
-    return line
 
 
 # deffed in many files  # missing from docs.python.org
