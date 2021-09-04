@@ -27,8 +27,10 @@ import find
 
 import ls
 
+import tar
 
-_ = (echo, find, ls)
+
+_ = (echo, find, ls, tar)
 
 # TODO: import just what the args need
 

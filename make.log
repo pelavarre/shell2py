@@ -19,11 +19,14 @@ echo 'for P in bin/*.py; do echo | python3 -m pdb $P; done' |bash
 > /Users/plavarre/Public/shell2py/bin/shell2py.py(3)<module>()
 -> """
 (Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/tar.py(3)<module>()
+-> """
+(Pdb) (Pdb)
 :
 :
 ~/.venvs/pips/bin/black bin/*.py
 All done! ✨ 🍰 ✨
-5 files left unchanged.
+6 files left unchanged.
 :
 :
 ~/.venvs/pips/bin/flake8 --max-line-length=999 --ignore=E203,W503 bin/*.py
@@ -262,5 +265,216 @@ bin/find.py -type d -name '.?*' -prune -o -print |head -3
 ./bin
 ./bin/__pycache__
 :
+:
+:
+rm -fr dir/ dir.tgz
+mkdir -p dir/a/b/c dir/p/q/r
+echo hello >dir/a/b/d
+echo goodbye > dir/a/b/e
+tar czf dir.tgz dir/
+:
+shell2py tar tvf dir.tgz
+import datetime as dt
+import os
+import sys
+import tarfile
+
+def tar_list(filepath):
+    """list tarred files, a la 'tar tvf'"""
+
+    # Walk to each file or dir found inside
+
+    top = os.path.realpath(os.getcwd())
+    with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
+
+        names = untarring.getnames()
+        for name in names:
+            member = untarring.getmember(name)
+
+            # Decline to extract above Top
+
+            outpath = os.path.realpath(name)
+            outdir = os.path.dirname(outpath)
+
+            if top != outdir:
+                assert outdir.startswith(top + os.sep), (outdir, top)
+
+            # Trace the walk
+
+            print(tar_member_details(member))
+
+def tar_member_details(member):
+    """Return such as '-rw-r--r-- jqdoe/staff 8 2021-09-03 20:41 dir/a/b/e'"""
+
+    d_perm = 'd' if member.isdir() else '-'
+    bits = ((9 * "0") + bin(member.mode)[len("0b"):])[-9:]
+    perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
+
+    owns = member.uname + os.sep + member.gname
+
+    size = member.size
+
+    when = dt.datetime.fromtimestamp(member.mtime)
+    stamp = when.strftime("%Y-%m-%d %H:%M")
+
+    name = (member.name + os.sep) if member.isdir() else member.name
+
+    line = "{} {} {} {} {}".format(perms, owns, size, stamp, name)
+
+    return line
+
+
+# deffed in many files  # missing from docs.python.org
+def stderr_print(*args, **kwargs):
+    """Like Print, but flush don't write Stdout and do write and flush Stderr"""
+
+    sys.stdout.flush()
+    print(*args, **kwargs, file=sys.stderr)
+    sys.stderr.flush()
+
+    # else caller has to "{}\n".format(...) and flush
+
+
+tar_list("dir.tgz")
+bin/tar.py tvf dir.tgz |sed 's,202.-..-.. ..:..,2021-09-03 22:30,'
+drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/
+drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/a/
+drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/p/
+drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/p/q/
+drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/p/q/r/
+drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/a/b/
+drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/a/b/c/
+-rwxrwxrwx plavarre/staff 6 2021-09-03 22:30 dir/a/b/d
+-rwxrwxrwx plavarre/staff 8 2021-09-03 22:30 dir/a/b/e
+:
+shell2py tar xvkf dir.tgz
+import datetime as dt
+import os
+import sys
+import tarfile
+
+def tar_extract(filepath):
+    """extract tarred files, a la 'tar xvkf'"""
+
+    # Walk to each file or dir found inside
+
+    exists = 0
+    top = os.path.realpath(os.getcwd())
+    with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
+
+        names = untarring.getnames()
+        for name in names:
+            member = untarring.getmember(name)
+
+            # Decline to extract above Top
+
+            outpath = os.path.realpath(name)
+            outdir = os.path.dirname(outpath)
+
+            if top != outdir:
+                assert outdir.startswith(top + os.sep), (outdir, top)
+
+            # Trace the walk and make the dirs
+
+            if member.isdir():
+                print(name + os.sep)
+                if not os.path.isdir(outpath):
+                    os.makedirs(outpath)
+                continue
+
+            print(name)
+
+            # Skip existing files
+
+            with untarring.extractfile(name) as incoming:
+                if os.path.exists(name):
+                    stderr_print(
+                        "tar.py: {}: Cannot open: File exists".format(name)
+                    )
+                    exists += 1
+                    continue
+
+                # Save the bytes of the member as a file
+
+                member_bytes = incoming.read()
+                with open(outpath, "wb") as outgoing:
+                    outgoing.write(member_bytes)
+
+    if exists:
+        stderr_print(
+            "tar: Exiting with failure status due to previous errors"
+        )
+        sys.exit(2)
+
+
+def tar_member_details(member):
+    """Return such as '-rw-r--r-- jqdoe/staff 8 2021-09-03 20:41 dir/a/b/e'"""
+
+    d_perm = 'd' if member.isdir() else '-'
+    bits = ((9 * "0") + bin(member.mode)[len("0b"):])[-9:]
+    perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
+
+    owns = member.uname + os.sep + member.gname
+
+    size = member.size
+
+    when = dt.datetime.fromtimestamp(member.mtime)
+    stamp = when.strftime("%Y-%m-%d %H:%M")
+
+    name = (member.name + os.sep) if member.isdir() else member.name
+
+    line = "{} {} {} {} {}".format(perms, owns, size, stamp, name)
+
+    return line
+
+
+# deffed in many files  # missing from docs.python.org
+def stderr_print(*args, **kwargs):
+    """Like Print, but flush don't write Stdout and do write and flush Stderr"""
+
+    sys.stdout.flush()
+    print(*args, **kwargs, file=sys.stderr)
+    sys.stderr.flush()
+
+    # else caller has to "{}\n".format(...) and flush
+
+
+tar_extract("dir.tgz")
+rm -fr dir/
+bin/tar.py xvkf dir.tgz
+dir/
+dir/a/
+dir/p/
+dir/p/q/
+dir/p/q/r/
+dir/a/b/
+dir/a/b/c/
+dir/a/b/d
+dir/a/b/e
+bin/tar.py xvkf dir.tgz || echo "+ exit $?"
+dir/
+dir/a/
+dir/p/
+dir/p/q/
+dir/p/q/r/
+dir/a/b/
+dir/a/b/c/
+dir/a/b/d
+tar.py: dir/a/b/d: Cannot open: File exists
+dir/a/b/e
+tar.py: dir/a/b/e: Cannot open: File exists
+tar: Exiting with failure status due to previous errors
++ exit 2
+bin/tar.py xvf dir.tgz
+dir/
+dir/a/
+dir/p/
+dir/p/q/
+dir/p/q/r/
+dir/a/b/
+dir/a/b/c/
+dir/a/b/d
+dir/a/b/e
+rm -fr dir/ dir.tgz
 :
 :

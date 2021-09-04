@@ -60,17 +60,14 @@ def c_pre_process(chars, cpp_vars):
     for line in lines:
 
         stripped = line.strip()
-        if stripped.startswith("#"):
+        if stripped.startswith("#") and not stripped.startswith("# "):
+
             cpp_source = "#" + stripped[len("#") :].partition("#")[0]
             cpp_words = cpp_source.split()
             if cpp_words:
                 cpp_verb = cpp_words[0]
 
-                if cpp_verb == "#":
-
-                    pass
-
-                elif cpp_verb == "#if":
+                if cpp_verb == "#if":
                     assert len(cpp_words) == 2, cpp_words
                     value = cpp_get(cpp_vars, word=cpp_words[1])
 
@@ -216,7 +213,7 @@ def to_py_main(name, argv):
 
     module = sys.modules[name]
     py = shell_to_py(module, argv=argv)
-    exec(py)
+    exec(py, globals())
 
 
 # copied by: git clone https://github.com/pelavarre/shell2py.git

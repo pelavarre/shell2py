@@ -59,7 +59,7 @@ flake8:
 # --ignore=W503  # 2017 Pep 8 and Black over Flake8 W503 line break before binary op
 
 
-go: go_shell2py go_ls go_echo go_find
+go: go_shell2py go_ls go_echo go_find go_tar
 	:
 	:
 
@@ -116,3 +116,25 @@ go_find:
 	$V find -type d -name '.?*' -prune -o -print
 	bin/find.py -type d -name '.?*' -prune -o -print |head -3
 	:
+
+go_tar:
+	:
+	:
+	rm -fr dir/ dir.tgz
+	mkdir -p dir/a/b/c dir/p/q/r
+	echo hello >dir/a/b/d
+	echo goodbye > dir/a/b/e
+	tar czf dir.tgz dir/
+	:
+	$V tar tvf dir.tgz
+	bin/tar.py tvf dir.tgz |sed 's,202.-..-.. ..:..,2021-09-03 22:30,'
+	:
+	$V tar xvkf dir.tgz
+	rm -fr dir/
+	bin/tar.py xvkf dir.tgz
+	bin/tar.py xvkf dir.tgz || echo "+ exit $$?"
+	bin/tar.py xvf dir.tgz
+	rm -fr dir/ dir.tgz
+
+
+# copied by: git clone https://github.com/pelavarre/shell2py.git

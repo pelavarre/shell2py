@@ -21,9 +21,9 @@ optional arguments:
   --type D             find only dirs of dirs, not also files
 
 quirks:
-  Linux makes you to type '-' in place of '--' for 'find' options
-  Linux makes you to type the TOP before the '-' and '--' options
-  MacOS makes you spell out 'find .', in place of 'find', to search the current dir
+  linux makes you to type '-' in place of '--' for 'find' options
+  linux makes you to type the TOP before the '-' and '--' options
+  mac makes you spell out 'find .', in place of 'find', to search the current dir
 
 examples:
   find -maxdepth 1 -type d  # dirs inside this dir, but not their children
