@@ -34,8 +34,11 @@ examples:
 
 # TODO: solve -O --wildcards, solve FILE is "-" to mean Stdin
 
+import datetime as dt
+import os
 import re
 import sys
+import tarfile
 
 import _scraps_
 
@@ -49,172 +52,208 @@ def main(argv=None):
 
 def bash2py(argv):
 
-    args = parse_args(argv)
+    args = parse_tar_args(argv)
 
-    # Shrug off some obvious contradictions
+    module = sys.modules[__name__]
+    with open(module.__file__) as incoming:  # read this sourcefile
+        module_py = incoming.read()
+
+    # Shrug off some obvious contradictions: accept only r'(t|xk|x)v?f'
+
+    if args.t and args.x:
+        return
+    if (not args.t) and (not args.x):
+        return
+
+    if args.k and not args.x:
+        return
 
     if not args.f:
         return
 
-    if args.t and not args.x:
-        pass
-    elif args.x and not args.t:
-        pass
-    else:
-        return
+    # Write the first sourceline
 
-    if args.k:
-        if not args.x:
-            return
+    rep_file_path = _scraps_.as_py_value(args.f)
+    main_func_name = "tar_extract" if args.x else "tar_list"
+    py1 = "{}({})".format(main_func_name, rep_file_path)
 
-    # TODO: comment options into source
+    # Expand it once, and refine its DocString's
 
+    py2 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
     flags = "".join(_ for _ in "txvkf" if vars(args)[_])
-
-    extract_doc_chars = "extract tarred files, a la 'tar {}'".format(flags)
-    list_doc_chars = "list tarred files, a la 'tar {}'".format(flags)
-    doc_chars = extract_doc_chars if args.x else list_doc_chars
-
-    func = "tar_extract" if args.x else "tar_list"
-
-    py = r'''
-
-        import datetime as dt
-        import os
-        import sys
-        import tarfile
-
-        def $FUNC(filepath):
-            """$DOC_CHARS"""
-
-            # Walk to each file or dir found inside
-
-#if TAR_ADD_NOT_REPLACE
-            exists = 0
-#endif
-            top = os.path.realpath(os.getcwd())
-            with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
-
-                names = untarring.getnames()
-                for name in names:
-                    member = untarring.getmember(name)
-
-                    # Decline to extract above Top
-
-                    outpath = os.path.realpath(name)
-                    outdir = os.path.dirname(outpath)
-
-                    if top != outdir:
-                        assert outdir.startswith(top + os.sep), (outdir, top)
-
-#if TAR_EXTRACT
-#else
-                    # Trace the walk
-
-                    print(tar_member_details(member))
-#endif
-#if TAR_EXTRACT
-                    # Trace the walk and make the dirs
-
-                    if member.isdir():
-                        print(name + os.sep)
-                        if not os.path.isdir(outpath):
-                            os.makedirs(outpath)
-                        continue
-
-                    print(name)
-  #if TAR_ADD_NOT_REPLACE
-
-                    # Skip existing files
-
-                    with untarring.extractfile(name) as incoming:
-                        if os.path.exists(name):
-                            stderr_print(
-                                "tar.py: {}: Cannot open: File exists".format(name)
-                            )
-                            exists += 1
-                            continue
-
-                        # Save the bytes of the member as a file
-  #else
-                    # Save the bytes of the member as a file
-
-                    with untarring.extractfile(name) as incoming:
-  #endif
-
-                        member_bytes = incoming.read()
-                        member_size = len(member_bytes)
-                        assert member_size == member.size, (member_size. member.size)
-
-                        with open(outpath, "wb") as outgoing:
-                            outgoing.write(member_bytes)
-
-                        # TODO: also extract the perms, stamp, and owns
-
-  #if TAR_ADD_NOT_REPLACE
-            if exists:
-                stderr_print(
-                    "tar: Exiting with failure status due to previous errors"
-                )
-                sys.exit(2)
-
-  #endif
-#endif
-
-#if TAR_EXTRACT
-#else
-        def tar_member_details(member):
-            """Return such as '-rw-r--r-- jqdoe/staff 8 2021-09-03 20:41 dir/a/b/e'"""
-
-            d_perm = 'd' if member.isdir() else '-'
-            bits = ((9 * "0") + bin(member.mode)[len("0b"):])[-9:]
-            perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
-
-            owns = member.uname + os.sep + member.gname
-
-            size = member.size
-
-            when = dt.datetime.fromtimestamp(member.mtime)
-            stamp = when.strftime("%Y-%m-%d %H:%M")
-
-            name = (member.name + os.sep) if member.isdir() else member.name
-
-            line = "{} {} {} {} {}".format(perms, owns, size, stamp, name)
-
-            return line
-
-
-#endif
-#if TAR_EXTRACT
-        # deffed in many files  # missing from docs.python.org
-        def stderr_print(*args, **kwargs):
-            """Like Print, but flush don't write Stdout and do write and flush Stderr"""
-
-            sys.stdout.flush()
-            print(*args, **kwargs, file=sys.stderr)
-            sys.stderr.flush()
-
-            # else caller has to "{}\n".format(...) and flush
-#endif
-
-
-        $FUNC($FILE_PATH)
-
-        '''
-
-    py = _scraps_.c_pre_process(
-        py,
-        cpp_vars=dict(tar_add_not_replace=args.k, tar_extract=args.x),
+    py2 = py2.replace(
+        '''a la 'tar tvf'"""''',
+        '''a la 'tar {}'"""'''.format(flags),
     )
 
-    py = py.replace("$DOC_CHARS", doc_chars)
-    py = py.replace("$FUNC", func)
-    py = py.replace("$FILE_PATH", _scraps_.as_py_value(args.f))
+    # Expand it to two levels, and drop/keep the source guarded by 'tar -v'
 
-    return py
+    py3 = py2
+    py3 = py3.replace(", args):", "):")
+    py3 = _scraps_.py_dedent(py3, ifline="if args.k:", as_truthy=args.k)
+    py3 = _scraps_.py_dedent(py3, ifline="if args.v:", as_truthy=args.v)
+
+    # Expand it to three levels
+
+    py4 = py3
+    py4 = _scraps_.py_pick_lines(py=py4, module_py=module_py)
+    py4 = py4.replace(", args):", "):")
+    py4 = _scraps_.py_dedent(py4, ifline="if args.k:", as_truthy=args.k)
+    py4 = _scraps_.py_dedent(py4, ifline="if args.v:", as_truthy=args.v)
+    assert py4 != py3, stderr_print(_scraps_.unified_diff_chars(a=py3, b=py4))
+
+    # Expand it once more, if needed to surface the imports of the bottom level
+
+    py5 = py4
+    py5 = _scraps_.py_pick_lines(py=py5, module_py=module_py)
+    py5 = py5.replace(", args):", "):")
+    py5 = _scraps_.py_dedent(py5, ifline="if args.k:", as_truthy=args.k)
+    py5 = _scraps_.py_dedent(py5, ifline="if args.v:", as_truthy=args.v)
+
+    # Expand it one extra time, to demo no more need to expand it
+
+    py6 = py5
+    py6 = _scraps_.py_pick_lines(py=py6, module_py=module_py)
+    py6 = py6.replace(", args):", "):")
+    py6 = _scraps_.py_dedent(py6, ifline="if args.k:", as_truthy=args.k)
+    py6 = _scraps_.py_dedent(py6, ifline="if args.v:", as_truthy=args.v)
+    assert py6 == py5, stderr_print(_scraps_.unified_diff_chars(a=py5, b=py6))
+
+    # Succeed
+
+    return py6
 
 
-def parse_args(argv):
+def tar_list(filepath, args):
+    """List tarred files, a la 'tar tvf'"""
+
+    # Walk to each file or dir found inside
+
+    top = os.path.realpath(os.getcwd())
+    with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
+        names = untarring.getnames()
+
+        for name in names:
+            member = untarring.getmember(name)
+
+            # Decline to extract above Top
+
+            outpath = os.path.realpath(name)
+            outdir = os.path.dirname(outpath)
+
+            if top != outdir:
+                assert outdir.startswith(top + os.sep), (outdir, top)
+
+            # Trace the walk
+
+            if args.v:
+                print(tar_member_details(member))
+
+
+def tar_extract(filepath, args):
+    """Extract tarred files, a la 'tar xvkf'"""
+
+    if args.k:
+        exists = 0
+
+    # Walk to each file or dir found inside
+
+    top = os.path.realpath(os.getcwd())
+    with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
+        names = untarring.getnames()
+
+        for name in names:
+            member = untarring.getmember(name)
+
+            # Decline to extract above Top
+
+            outpath = os.path.realpath(name)
+            outdir = os.path.dirname(outpath)
+
+            if top != outdir:
+                assert outdir.startswith(top + os.sep), (outdir, top)
+
+            # Trace the walk and make the dirs
+
+            if member.isdir():
+                if args.v:
+                    print(name + os.sep)
+
+                if not os.path.isdir(outpath):
+                    os.makedirs(outpath)
+
+                continue
+
+            if args.v:
+                print(name)
+
+            # Skip existing files
+
+            with untarring.extractfile(name) as incoming:
+
+                if args.k:
+                    if os.path.exists(name):
+                        stderr_print(
+                            "tar.py: {}: Cannot open: File exists".format(name)
+                        )
+                        exists += 1
+
+                        continue
+
+                # Save the bytes of the member as a file
+
+                member_bytes = incoming.read()
+                member_size = len(member_bytes)
+                assert member_size == member.size, (member_size, member.size)
+
+                with open(outpath, "wb") as outgoing:
+                    outgoing.write(member_bytes)
+
+                # TODO: also extract the perms, stamp, and owns
+
+    if args.k:
+        if exists:
+            stderr_print("tar: Exiting with failure status due to previous errors")
+            sys.exit(2)
+
+
+# TODO: shuffle up 'def tar_member_details' to below `def tar_list'
+def tar_member_details(member):
+    """Return such as '-rw-r--r-- jqdoe/staff 8 2021-09-03 20:41 dir/a/b/e'"""
+
+    d_perm = "d" if member.isdir() else "-"
+    bits = ((9 * "0") + bin(member.mode)[len("0b") :])[-9:]
+    perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
+
+    owns = member.uname + os.sep + member.gname
+    # TODO: default to ".../..." anonymity, and who extracts to match sender anyhow?
+
+    str_size = str(member.size)
+    # TODO: str_size = "." if member.isdir() else str(member.size)
+
+    when = dt.datetime.fromtimestamp(member.mtime)
+    stamp = when.strftime("%Y-%m-%d %H:%M")
+
+    name = (member.name + os.sep) if member.isdir() else member.name
+
+    line = "{} {} {} {} {}".format(perms, owns, str_size, stamp, name)
+
+    return line
+
+
+# deffed in many files  # missing from docs.python.org
+def stderr_print(*args, **kwargs):
+    """Like Print, but flush don't write Stdout and do write and flush Stderr"""
+
+    sys.stdout.flush()
+    print(*args, **kwargs, file=sys.stderr)
+    sys.stderr.flush()
+
+    # else caller has to "{}\n".format(...) and flush
+
+
+# TODO: shuffle 'def parse_tar_args' to below 'def main' above 'def bash2py'
+def parse_tar_args(argv):
 
     as_argv = list(argv)
     if as_argv[1:]:

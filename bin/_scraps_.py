@@ -1,7 +1,5 @@
 """
-Docs Python folk are still working up a sincere and competent welcome for contribution
-
-Someday they might start publishing these fragments too
+Collect scraps of Code held in common by the Py near here, aka tools, utils, etc
 """
 
 import __main__
@@ -9,11 +7,19 @@ import argparse
 import ast
 import difflib
 import os
+import pdb
+import re
 import sys
 import textwrap
 
+_ = pdb
 
-# deffed in many files  # missing from docs.python.org
+
+#
+# Rough edits of simple Py sources can produce correct Code
+#
+
+
 def as_py_argv(words):
     """Convert a List of Strings to the Python that means form an equal List"""
 
@@ -23,7 +29,6 @@ def as_py_argv(words):
     return py
 
 
-# deffed in many files  # missing from docs.python.org
 def as_py_value(value):
     """Convert a Value to the Python that means form an equal Value"""
 
@@ -35,6 +40,215 @@ def as_py_value(value):
     assert evalled == value, (evalled, value)
 
     return rep
+
+
+def py_pick_lines(py, module_py):
+    """Pick out enough more lines from the 'module_py' to run the 'py' well"""
+
+    core_py = py.strip().splitlines()[-1]  # TODO: more robust/ elegant
+
+    # Add Defs of Mentioned Names till no more Defs found,
+    # but go wrong over Dynamic Names, Non-Ascii Names, etc
+
+    names = sorted(set(re.findall(r"[A-Z_a-z][0-9A-Z_a-z]*", string=py)))
+    def_lines = _py_pick_def_lines(names, module_py=module_py)
+    defs_py = _py_pick_defs(def_lines, module_py=module_py)
+
+    import_lines = _py_pick_import_lines(names, module_py=module_py)
+    import_py = "\n".join(import_lines)
+
+    got_py = import_py + "\n\n\n" + defs_py + "\n\n\n" + core_py
+    got_py = got_py.strip()  # such as empty 'import_py'
+
+    return got_py
+
+
+def _py_pick_defs(def_lines, module_py):
+    """Pick out each Def Line and its Body, as ordered by Module Py"""
+
+    def_lines_set = set(def_lines)
+    inlines = module_py.splitlines()
+
+    outlines = list()
+    for (index, inline) in enumerate(inlines):
+        if inline in def_lines_set:
+
+            if True:  # TODO: more elegant tie to comments before 'def' func
+                if inline == "def stderr_print(*args, **kwargs):":
+                    outlines.append(
+                        "# deffed in many files  # missing from docs.python.org"
+                    )
+
+            outlines.append(inline)
+
+            # Copy Lines of the Body till next Outdent,
+            # but go wrong over Comments, Multi-Line Strings, etc
+
+            for inline in inlines[(index + 1) :]:
+                if inline and not inline.startswith(" "):
+
+                    break
+
+                outlines.append(inline)
+
+                continue
+
+    chars = "\n".join(outlines).strip()
+
+    return chars
+
+
+def _py_pick_def_lines(names, module_py):
+    """Pick top-level 'def' lines from 'module_py' that define words of 'py'"""
+
+    # Pick out Top-Level Def Lines
+    # but go wrong over Comments, Multi-Line Strings, etc
+
+    def_line_by_name = dict()
+    for line in module_py.splitlines():
+        words = line.split()
+        if words and (words[0] == "def"):
+            deffed_name = words[1].split("(")[0]
+
+            assert deffed_name not in def_line_by_name, deffed_name
+            def_line_by_name[deffed_name] = line
+
+    # Pick out Top-Level Def Lines that got a Mention
+
+    picked_lines = list()
+    for name in names:
+        if name in def_line_by_name:
+            def_line = def_line_by_name[name]
+
+            picked_lines.append(def_line)
+
+    return picked_lines
+
+
+def _py_pick_import_lines(names, module_py):
+    """Pick 'import' lines from 'module_py' that define words of 'py'"""
+
+    # Pick out defined Import Lines,
+    # but go wrong over From Imports, Conditional Imports, etc
+
+    import_line_by_name = dict()
+    for line in module_py.splitlines():
+        words = line.split()
+        if words and (words[0] == "import"):
+            imported_name = words[-1]
+
+            assert imported_name not in import_line_by_name, imported_name
+            import_line_by_name[imported_name] = line
+
+    # Pick out Defined Import Lines that got a Mention
+
+    picked_lines = list()
+    for name in names:
+        if name in import_line_by_name:
+            import_line = import_line_by_name[name]
+
+            picked_lines.append(import_line)
+
+    return picked_lines
+
+
+def py_dedent(py, ifline, as_truthy):
+    """Find the bodies of code that these 'ifline's guard, and keep or drop them"""
+
+    inlines = py.splitlines()
+
+    outlines = list()
+    skip_index = 0
+    for (index, inline) in enumerate(inlines):
+        if index < skip_index:
+
+            continue
+
+        if inline.strip() != ifline:
+
+            outlines.append(inline)
+
+        else:
+
+            (if_dent, _) = str_splitdent(inline)
+
+            skip_index = index  # TODO: work each 'inline' just once, more elegantly
+            skip_index += 1
+
+            # Copy Lines of the Body till next Outdent,
+            # but go wrong over Comments, Multi-Line Strings, etc
+
+            for (sub_index, inline) in enumerate(inlines[(index + 1) :]):
+                (dent, tail) = str_splitdent(inline)
+
+                if len(dent) <= len(if_dent):
+                    if inline:
+
+                        break
+
+                outline = inline
+                if inline:
+
+                    skip_index = index + 1 + sub_index + 1
+
+                    dent = "    "
+                    assert inline.startswith(dent + if_dent), repr(inline)
+                    outline = inline[len(dent) :]
+
+                if as_truthy:
+                    outlines.append(outline)
+
+                continue
+
+            while not outlines[-1]:  # TODO: more clueful tie to blank lines from code
+                outlines = outlines[:-1]
+
+    chars = "\n".join(outlines).strip()
+
+    return chars
+
+
+#
+# Every Bash command should know how to speak itsels as Python
+#
+
+
+def shell_to_py(module, argv):
+    """Convert one Shell Line to Python, else Print the Help for it, else Exit Loudly"""
+
+    file = os.path.basename(module.__file__)
+    doc = module.__doc__
+    bash2py = module.bash2py
+
+    py = bash2py(argv)
+
+    if py is None:
+        usage = doc.strip().splitlines()[0]
+        sys.stderr.write(usage + "\n")
+        sys.stderr.write(
+            "{}: error: need stronger translator, "
+            "meanwhile the '{} --help' examples do work\n".format(file, file)
+        )
+        sys.exit(3)
+
+    if not py:
+        print(doc.strip())
+        sys.exit(0)
+
+    return py
+
+
+def to_py_main(name, argv):
+    """Convert one Shell Line to Python and run it"""
+
+    module = sys.modules[name]
+    py = shell_to_py(module, argv=argv)
+    exec(py, globals())
+
+
+#
+# Run with a layer of general-purpose Python idioms
+#
 
 
 # deffed in many files  # missing from docs.python.org
@@ -142,6 +356,15 @@ def compile_argdoc(epi, doc=None, drop_help=None):
 
 
 # deffed in many files  # missing from docs.python.org
+def unified_diff_chars(a, b):
+    """Return the chars of a 'diff -u' of two piles of source chars"""
+
+    chars = "\n".join(difflib.unified_diff(a=a.splitlines(), b=b.splitlines()))
+
+    return chars
+
+
+# deffed in many files  # missing from docs.python.org
 def exit_unless_doc_eq(parser, file, doc):
     """Exit nonzero, unless __main__.__doc__ equals "parser.format_help()" """
 
@@ -181,39 +404,20 @@ def exit_unless_doc_eq(parser, file, doc):
         sys.exit(1)  # trust caller to log SystemExit exceptions well
 
 
-# deffed in many files  # missing from docs.python.org
-def shell_to_py(module, argv):
-    """Convert one Shell Line to Python, else Print the Help for it, else Exit Loudly"""
+def str_splitdent(line):
+    """Split apart the indentation of a line, from the remainder of the line"""
 
-    file = os.path.basename(module.__file__)
-    doc = module.__doc__
-    bash2py = module.bash2py
+    lstripped = line.lstrip()
+    len_dent = len(line) - len(lstripped)
 
-    py = bash2py(argv)
+    tail = lstripped
+    if not lstripped:  # see no chars, not all chars, as the indentation of a blank line
+        tail = line
+        len_dent = 0
 
-    if py is None:
-        usage = doc.strip().splitlines()[0]
-        sys.stderr.write(usage + "\n")
-        sys.stderr.write(
-            "{}: error: need stronger translator, "
-            "meanwhile the '{} --help' examples do work\n".format(file, file)
-        )
-        sys.exit(3)
+    dent = len_dent * " "
 
-    if not py:
-        print(doc.strip())
-        sys.exit(0)
-
-    return py
-
-
-# deffed in many files  # missing from docs.python.org
-def to_py_main(name, argv):
-    """Convert one Shell Line to Python and run it"""
-
-    module = sys.modules[name]
-    py = shell_to_py(module, argv=argv)
-    exec(py, globals())
+    return (dent, tail)
 
 
 # copied by: git clone https://github.com/pelavarre/shell2py.git

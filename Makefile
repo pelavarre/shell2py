@@ -135,6 +135,8 @@ go_tar:
 	bin/tar.py xvkf dir.tgz || echo "+ exit $$?"
 	bin/tar.py xvf dir.tgz
 	rm -fr dir/ dir.tgz
+	:
+	: "TODO: test 'tar' without '-v'"
 
 
 # copied by: git clone https://github.com/pelavarre/shell2py.git

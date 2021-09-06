@@ -276,18 +276,18 @@ tar czf dir.tgz dir/
 shell2py tar tvf dir.tgz
 import datetime as dt
 import os
-import sys
 import tarfile
 
+
 def tar_list(filepath):
-    """list tarred files, a la 'tar tvf'"""
+    """List tarred files, a la 'tar tvf'"""
 
     # Walk to each file or dir found inside
 
     top = os.path.realpath(os.getcwd())
     with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
-
         names = untarring.getnames()
+
         for name in names:
             member = untarring.getmember(name)
 
@@ -303,27 +303,28 @@ def tar_list(filepath):
 
             print(tar_member_details(member))
 
+
 def tar_member_details(member):
     """Return such as '-rw-r--r-- jqdoe/staff 8 2021-09-03 20:41 dir/a/b/e'"""
 
-    d_perm = 'd' if member.isdir() else '-'
-    bits = ((9 * "0") + bin(member.mode)[len("0b"):])[-9:]
+    d_perm = "d" if member.isdir() else "-"
+    bits = ((9 * "0") + bin(member.mode)[len("0b") :])[-9:]
     perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
 
     owns = member.uname + os.sep + member.gname
+    # TODO: default to ".../..." anonymity, and who extracts to match sender anyhow?
 
-    size = member.size
+    str_size = str(member.size)
+    # TODO: str_size = "." if member.isdir() else str(member.size)
 
     when = dt.datetime.fromtimestamp(member.mtime)
     stamp = when.strftime("%Y-%m-%d %H:%M")
 
     name = (member.name + os.sep) if member.isdir() else member.name
 
-    line = "{} {} {} {} {}".format(perms, owns, size, stamp, name)
+    line = "{} {} {} {} {}".format(perms, owns, str_size, stamp, name)
 
     return line
-
-
 
 
 tar_list("dir.tgz")
@@ -339,21 +340,22 @@ drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/a/b/c/
 -rwxrwxrwx plavarre/staff 8 2021-09-03 22:30 dir/a/b/e
 :
 shell2py tar xvkf dir.tgz
-import datetime as dt
 import os
 import sys
 import tarfile
 
+
 def tar_extract(filepath):
-    """extract tarred files, a la 'tar xvkf'"""
+    """Extract tarred files, a la 'tar xvkf'"""
+
+    exists = 0
 
     # Walk to each file or dir found inside
 
-    exists = 0
     top = os.path.realpath(os.getcwd())
     with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
-
         names = untarring.getnames()
+
         for name in names:
             member = untarring.getmember(name)
 
@@ -369,8 +371,10 @@ def tar_extract(filepath):
 
             if member.isdir():
                 print(name + os.sep)
+
                 if not os.path.isdir(outpath):
                     os.makedirs(outpath)
+
                 continue
 
             print(name)
@@ -378,18 +382,20 @@ def tar_extract(filepath):
             # Skip existing files
 
             with untarring.extractfile(name) as incoming:
+
                 if os.path.exists(name):
                     stderr_print(
                         "tar.py: {}: Cannot open: File exists".format(name)
                     )
                     exists += 1
+
                     continue
 
                 # Save the bytes of the member as a file
 
                 member_bytes = incoming.read()
                 member_size = len(member_bytes)
-                assert member_size == member.size, (member_size. member.size)
+                assert member_size == member.size, (member_size, member.size)
 
                 with open(outpath, "wb") as outgoing:
                     outgoing.write(member_bytes)
@@ -397,9 +403,7 @@ def tar_extract(filepath):
                 # TODO: also extract the perms, stamp, and owns
 
     if exists:
-        stderr_print(
-            "tar: Exiting with failure status due to previous errors"
-        )
+        stderr_print("tar: Exiting with failure status due to previous errors")
         sys.exit(2)
 
 
@@ -451,5 +455,7 @@ dir/a/b/c/
 dir/a/b/d
 dir/a/b/e
 rm -fr dir/ dir.tgz
+:
+: "TODO: test 'tar' without '-v'"
 :
 :

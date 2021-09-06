@@ -50,7 +50,7 @@ def main(argv=None):
 
 def bash2py(argv):
 
-    args = parse_args(argv)
+    args = parse_find_args(argv)
     args_not = vars(args)["not"]
 
     top = args.top if args.top else "."
@@ -148,7 +148,7 @@ def bash2py(argv):
     return py
 
 
-def parse_args(argv):
+def parse_find_args(argv):
 
     as_argv = list(argv)
     for (index, arg) in enumerate(as_argv):
