@@ -430,7 +430,7 @@ def tar_extract(filepath):
 
                 continue
 
-            print(name)
+            stderr_print(name)
 
             # Visit each Dir or File
 
@@ -536,7 +536,7 @@ def tar_extract(filepath):
 
                 continue
 
-            print(name)
+            stderr_print(name)
 
             # Visit each Dir or File
 
@@ -603,9 +603,23 @@ def tar_list(filepath):
             if top != outdir:
                 assert outdir.startswith(top + os.sep), (outdir, top)
 
+            if member.isdir():
+                print(name + os.sep)
+            else:
+                print(name)
+
 
 tar_list("dir.tgz")
 bin/tar.py tf dir.tgz
+dir/
+dir/a/
+dir/p/
+dir/p/q/
+dir/p/q/r/
+dir/a/b/
+dir/a/b/c/
+dir/a/b/d
+dir/a/b/e
 :
 shell2py tar xkf dir.tgz
 import os

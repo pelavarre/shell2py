@@ -10,21 +10,20 @@ positional arguments:
 
 optional arguments:
   -h, --help  show this help message and exit
-  -t          list every file, without writing any files
+  -t          dry run:  list each dir or file at Stdout, but do Not extract them
   -x          write out a copy of each file, back to where it came from
-  -v          trace each file or dir name found inside to stdout
+  -v          say more:  add details to '-t', or list each dir or file when extracted
   -k          decline to replace files created before now
   -f FILE     name the file to uncompress
   -O          write out a copy of each file, but to Stdout, not to where it came from
 
 quirks:
-  lets you say 'tvf' to mean '-tvf', 'xvkf' to mean '-xvkf', etc
+  lets you say classic 'tvf' to mean '-tvf', classic 'xvkf' to mean '-xvkf', etc
   takes '-k' as meaning don't replace files created before now, like Linux, unlike Mac
-  traces files and dirs in Linux "u/g" "s" "y-m-D" format, not Mac "u" "g" " s" "m d"
-  traces extracts in Linux "f" format, not Mac "x f" format
-  lists and extracts the compressed files and dirs in python order, differs from Linux
+  traces '-tv' dirs and files like Linux "u/g s y-m-D", not like Mac "u g s m d"
+  traces '-x' dirs and files in Linux "f" format, not Mac "x f" format
 
-bash script to compress a top dir as Tgz for test:
+Bash script to compress a top dir as Tgz for test:
   rm -fr dir/ dir.tgz
   mkdir -p dir/a/b/c dir/p/q/r
   echo hello >dir/a/b/d
@@ -75,7 +74,7 @@ def parse_tar_args(argv):
         "-t",
         action="count",
         default=0,
-        help="list every file, without writing any files",
+        help="dry run:  list each dir or file at Stdout, but do Not extract them",
     )
 
     parser.add_argument(
@@ -89,7 +88,7 @@ def parse_tar_args(argv):
         "-v",
         action="count",
         default=0,
-        help="trace each file or dir name found inside to stdout",
+        help="say more:  add details to '-t', or list each dir or file when extracted",
     )
 
     parser.add_argument(
@@ -219,6 +218,7 @@ def shell_to_py(argv):
     py3 = py3.replace(", args):", "):")
     py3 = _scraps_.py_dedent(py3, ifline="if args.k:", as_truthy=args.k)
     py3 = _scraps_.py_dedent(py3, ifline="if args.v:", as_truthy=args.v)
+    py3 = _scraps_.py_dedent(py3, ifline="if not args.v:", as_truthy=(not args.v))
 
     # Expand it to three levels
 
@@ -227,6 +227,7 @@ def shell_to_py(argv):
     py4 = py4.replace(", args):", "):")
     py4 = _scraps_.py_dedent(py4, ifline="if args.k:", as_truthy=args.k)
     py4 = _scraps_.py_dedent(py4, ifline="if args.v:", as_truthy=args.v)
+    py4 = _scraps_.py_dedent(py4, ifline="if not args.v:", as_truthy=(not args.v))
     assert py4 != py3, stderr_print(_scraps_.unified_diff_chars(a=py3, b=py4))
 
     # Expand it once more, if needed to surface the imports of the bottom level
@@ -237,6 +238,7 @@ def shell_to_py(argv):
     py5 = py5.replace(", args):", "):")
     py5 = _scraps_.py_dedent(py5, ifline="if args.k:", as_truthy=args.k)
     py5 = _scraps_.py_dedent(py5, ifline="if args.v:", as_truthy=args.v)
+    py5 = _scraps_.py_dedent(py5, ifline="if not args.v:", as_truthy=(not args.v))
     py5 = str_replace_common_special(py5)
 
     # Form it one last time, to show no more need to expand it
@@ -246,6 +248,7 @@ def shell_to_py(argv):
     py6 = py6.replace(", args):", "):")
     py6 = _scraps_.py_dedent(py6, ifline="if args.k:", as_truthy=args.k)
     py6 = _scraps_.py_dedent(py6, ifline="if args.v:", as_truthy=args.v)
+    py6 = _scraps_.py_dedent(py6, ifline="if not args.v:", as_truthy=(not args.v))
     py6 = str_replace_common_special(py6)
     assert py6 == py5, stderr_print(_scraps_.unified_diff_chars(a=py5, b=py6))
 
@@ -275,6 +278,12 @@ def tar_list(filepath, args):
                 assert outdir.startswith(top + os.sep), (outdir, top)
 
             # Trace the walk
+
+            if not args.v:
+                if member.isdir():
+                    print(name + os.sep)
+                else:
+                    print(name)
 
             if args.v:
                 print(tar_member_details(member))
@@ -338,7 +347,7 @@ def tar_extract(filepath, args):
                 continue
 
             if args.v:
-                print(name)
+                stderr_print(name)
 
             # Visit each Dir or File
 
