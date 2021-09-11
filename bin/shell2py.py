@@ -21,6 +21,8 @@ examples:
   ls bin/*  # show the verbs of Bash that this revision of Shell2Py will explain
 """
 
+import argparse
+import glob
 import os
 import sys
 
@@ -37,48 +39,97 @@ import tac
 import tar
 
 
-_ = (echo, find, ls, tac, tar)
+def main():
 
-# TODO: import just the modules needed for this run of the main args
+    argv = sys.argv
+
+    # TODO: import just the modules needed for this run of the main args
+
+    _ = (echo, find, ls, tac, tar)
+
+    # Discover the Python modules of Shell Verbs near here
+
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+
+    with_dir = os.getcwd()
+    os.chdir(file_dir)
+    try:
+        hits = glob.glob("*.py")
+    finally:
+        os.chdir(with_dir)
+
+    verbs = sorted(os.path.splitext(_)[0] for _ in hits if not _.startswith("_"))
+    verbs = list(_ for _ in verbs if _ != "shell2py")
+    str_verbs = ", ".join(repr(_) for _ in verbs)
+
+    # Require Verb found
+
+    args = parse_shell2py_args(argv)
+
+    verb = args.verb
+
+    if verb not in verbs:
+        sys.stderr.write(
+            "shell2py.py: error: "
+            "argument VERB: invalid choice: {!r} (choose from {})\n".format(
+                verb, str_verbs
+            )
+        )
+        sys.exit(2)
+
+    # Say in Python what they said in Shell
+
+    module = sys.modules[verb]
+    py = _scraps_.module_shell_to_py(module, argv=argv[1:])
+
+    print(py)
 
 
-# Offer the "--help" there, and also at "-h"
+def parse_shell2py_args(argv):
 
-argv = sys.argv[1:]
+    # Offer the "--help" or the "-h"
 
-if argv:
-    arg = argv[0]
-    helping = "--help".startswith(arg) and (len(arg) >= len("--h"))
-    h_ing = arg == "-h"
-    if helping or h_ing:
-        print(__doc__.strip())
-        sys.exit(0)
+    if argv[1:]:
+        arg = argv[1]
+
+        helping = "--help".startswith(arg) and (len(arg) >= len("--h"))
+        h_ing = arg == "-h"
+
+        if helping or h_ing:
+            print(__doc__.strip())
+            sys.exit(0)
+
+    # Require Verb
+
+    if not argv[1:]:
+        usage = __doc__.strip().splitlines()[0]
+        sys.stderr.write(usage + "\n")
+        sys.stderr.write(
+            "shell2py.py: error: the following arguments are required: VERB\n"
+        )
+        sys.exit(2)
+
+    # Strip a "bin/" prefix and/or ".py" suffix from the Verb
+
+    verb = argv[1]
+
+    (dirname, basename) = os.path.split(verb)
+    if dirname == "bin":
+        verb = basename  # such as "find.py" from "bin/find.py"
+
+    (name, ext) = os.path.splitext(verb)
+    if ext == ".py":
+        verb = name  # such as "find" from "find.py"
+
+    # Return a Namespace of Parsed Args
+
+    args = argparse.Namespace(verb=verb)
+
+    return args
 
 
-# Require VERB
-
-if not argv:
-    usage = __doc__.strip().splitlines()[0]
-    sys.stderr.write(usage + "\n")
-    sys.stderr.write("shell2py.py: error: the following arguments are required: VERB\n")
-    sys.exit(2)
-
-
-# Translate one line of Shell
-
-verb = arg
-
-(dirname, basename) = os.path.split(verb)
-if dirname == "bin":
-    verb = basename  # such as "find.py" from "bin/find.py"
-
-(name, ext) = os.path.splitext(verb)
-if ext == ".py":
-    verb = name  # such as "find" from "find.py"
-
-module = sys.modules[verb]
-py = _scraps_.module_shell_to_py(module, argv=argv)
-print(py)
+if __name__ == "__main__":
+    main()
 
 
 # copied by: git clone https://github.com/pelavarre/shell2py.git

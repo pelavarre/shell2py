@@ -88,6 +88,8 @@ go_shell2py:
 	:
 	$V || echo "+ exit $$?"
 	:
+	$V help || echo "+ exit $$?"
+	:
 	$V -h
 	:
 	$V --help
