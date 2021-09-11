@@ -234,6 +234,29 @@ def tar_list(filepath, args):
                 print(tar_member_details(member))
 
 
+def tar_member_details(member):
+    """Return such as '-rw-r--r-- jqdoe/staff 8 2021-09-03 20:41 dir/a/b/e'"""
+
+    d_perm = "d" if member.isdir() else "-"
+    bits = ((9 * "0") + bin(member.mode)[len("0b") :])[-9:]
+    perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
+
+    member_uname = "..."  # ellipsis "..." is more anonymous than "member.uname"
+    member_gname = "..."  # ellipsis "..." is more anonymous than "member.gname"
+    owns = member_uname + os.sep + member_gname
+
+    str_size = "." if member.isdir() else str(member.size)  # 0 at dirs is meaningless
+
+    when = dt.datetime.fromtimestamp(member.mtime)
+    stamp = when.strftime("%Y-%m-%d %H:%M")
+
+    name = (member.name + os.sep) if member.isdir() else member.name
+
+    line = "{} {} {} {} {}".format(perms, owns, str_size, stamp, name)
+
+    return line
+
+
 def tar_extract(filepath, args):
     """Extract tarred files, a la 'tar xvkf'"""
 
@@ -299,30 +322,6 @@ def tar_extract(filepath, args):
         if exists:
             stderr_print("tar: Exiting with failure status due to previous errors")
             sys.exit(2)
-
-
-# TODO: shuffle up 'def tar_member_details' to below `def tar_list'
-def tar_member_details(member):
-    """Return such as '-rw-r--r-- jqdoe/staff 8 2021-09-03 20:41 dir/a/b/e'"""
-
-    d_perm = "d" if member.isdir() else "-"
-    bits = ((9 * "0") + bin(member.mode)[len("0b") :])[-9:]
-    perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
-
-    member_uname = "..."  # ellipsis "..." is more anonymous than "member.uname"
-    member_gname = "..."  # ellipsis "..." is more anonymous than "member.gname"
-    owns = member_uname + os.sep + member_gname
-
-    str_size = "." if member.isdir() else str(member.size)  # 0 at dirs is meaningless
-
-    when = dt.datetime.fromtimestamp(member.mtime)
-    stamp = when.strftime("%Y-%m-%d %H:%M")
-
-    name = (member.name + os.sep) if member.isdir() else member.name
-
-    line = "{} {} {} {} {}".format(perms, owns, str_size, stamp, name)
-
-    return line
 
 
 # deffed in many files  # missing from docs.python.org
