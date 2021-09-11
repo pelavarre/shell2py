@@ -120,6 +120,7 @@ make.log
 shell2py echo 'Hello, Echo World!'
 import sys
 
+# echo.py 'Hello, Echo World!'
 sys.argv = ["echo.py", "Hello, Echo World!"]  # unwanted if trying to echo a command line
 
 sys.stderr.flush()  # unneeded if not also writing Stderr
@@ -131,6 +132,7 @@ Hello, Echo World!
 shell2py echo --v 'Hello,' 'Echo World!'
 import sys
 
+# echo.py Hello, 'Echo World!'
 sys.argv = ["echo.py", "Hello,", "Echo World!"]  # unwanted if trying to echo a command line
 
 for (index, arg) in enumerate(sys.argv):
@@ -143,11 +145,11 @@ bin/echo.py --v 'Hello,' 'Echo World!'
 shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
 import sys
 
+# echo.py '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
 sys.argv = ["echo.py", "⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮"]  # unwanted if trying to echo a command line
-str_args = " ".join(sys.argv[1:])
 
 sys.stderr.flush()  # unneeded if not also writing Stderr
-sys.stdout.write(str_args)  # tada, no line break
+sys.stdout.write(" ".join(sys.argv[1:]))  # tada, no line break
 sys.stdout.flush()  # unneeded if exiting now
 bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
 00000000  e2 8c 83 20 e2 8c a5 20  e2 87 a7 20 e2 8c 98 20  |... ... ... ... |

@@ -81,6 +81,7 @@ def echo(argv):
 
         import sys
 
+        # $SHLINE
         sys.argv = $ARGV  # unwanted if trying to echo a command line
 
         sys.stderr.flush()  # unneeded if not also writing Stderr
@@ -90,6 +91,7 @@ def echo(argv):
         """
     ).strip()
     py = py.replace("$ARGV", _scraps_.as_py_value(argv))
+    py = py.replace("$SHLINE", _scraps_.shlex_join(argv))
 
     return py
 
@@ -101,16 +103,17 @@ def echo_n(argv):
 
         import sys
 
+        # $SHLINE
         sys.argv = $ARGV  # unwanted if trying to echo a command line
-        str_args = " ".join(sys.argv[1:])
 
         sys.stderr.flush()  # unneeded if not also writing Stderr
-        sys.stdout.write(str_args)  # tada, no line break
+        sys.stdout.write(" ".join(sys.argv[1:]))  # tada, no line break
         sys.stdout.flush()  # unneeded if exiting now
 
         """
     ).strip()
     py = py.replace("$ARGV", _scraps_.as_py_value(argv))
+    py = py.replace("$SHLINE", _scraps_.shlex_join(argv))
 
     return py
 
@@ -122,6 +125,7 @@ def echo_verbose(argv):
 
         import sys
 
+        # $SHLINE
         sys.argv = $ARGV  # unwanted if trying to echo a command line
 
         for (index, arg) in enumerate(sys.argv):
@@ -131,6 +135,7 @@ def echo_verbose(argv):
         """
     ).strip()
     py = py.replace("$ARGV", _scraps_.as_py_value(argv))
+    py = py.replace("$SHLINE", _scraps_.shlex_join(argv))
 
     return py
 

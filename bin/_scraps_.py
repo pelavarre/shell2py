@@ -427,16 +427,32 @@ def exit_unless_doc_eq(parser, file, doc):
 
 
 # deffed in many files  # missing from docs.python.org till Oct/2019 Python 3.8
+def shlex_join(argv):
+    """Undo shlex.split"""
+
+    # Trust the library, if available
+
+    if hasattr(shlex, "joinx"):
+        shline = shlex.join(argv)
+        return shline
+
+    # Emulate the library roughly, because often good enough
+
+    shline = " ".join(shlex_quote(_) for _ in argv)
+    return shline
+
+
+# deffed in many files  # missing from docs.python.org till Oct/2019 Python 3.8
 def shlex_quote(arg):
     """Mark up with quote marks and backslashes , but only as needed"""
 
-    # trust the library, if available
+    # Trust the library, if available
 
     if hasattr(shlex, "quote"):
         quoted = shlex.quote(arg)
         return quoted
 
-    # emulate the library roughly, because often good enough
+    # Emulate the library roughly, because often good enough
 
     mostly_harmless = set(
         "%+,-./"
