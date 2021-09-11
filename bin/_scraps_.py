@@ -12,7 +12,9 @@ import re
 import sys
 import textwrap
 
-_ = pdb
+
+def b():
+    pdb.set_trace()
 
 
 #
@@ -45,7 +47,8 @@ def as_py_value(value):
 def py_pick_lines(py, module_py):
     """Pick out enough more lines from the 'module_py' to run the 'py' well"""
 
-    core_py = py.strip().splitlines()[-1]  # TODO: more robust/ elegant
+    paras = split_paragraphs(py.splitlines())
+    core_py = "\n".join(paras[-1])  # TODO: more robust/ elegant
 
     # Add Defs of Mentioned Names till no more Defs found,
     # but go wrong over Dynamic Names, Non-Ascii Names, etc
@@ -404,6 +407,29 @@ def exit_unless_doc_eq(parser, file, doc):
         sys.exit(1)  # trust caller to log SystemExit exceptions well
 
 
+# deffed in many files  # missing from docs.python.org
+def split_paragraphs(lines, keepends=False):
+    """Split the lines into paragraphs"""
+
+    paras = list()
+
+    para = list()
+    for line in lines:
+        if line.strip():
+            para.append(line)
+        else:
+            if keepends:
+                para.append(line)
+            if para or keepends:
+                paras.append(para)
+            para = list()
+    if para:
+        paras.append(para)
+
+    return paras
+
+
+# deffed in many files  # missing from docs.python.org
 def str_splitdent(line):
     """Split apart the indentation of a line, from the remainder of the line"""
 

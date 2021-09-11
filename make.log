@@ -19,6 +19,9 @@ echo 'for P in bin/*.py; do echo | python3 -m pdb $P; done' |bash
 > /Users/plavarre/Public/shell2py/bin/shell2py.py(3)<module>()
 -> """
 (Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/tac.py(3)<module>()
+-> """
+(Pdb) (Pdb)
 > /Users/plavarre/Public/shell2py/bin/tar.py(3)<module>()
 -> """
 (Pdb) (Pdb)
@@ -26,7 +29,7 @@ echo 'for P in bin/*.py; do echo | python3 -m pdb $P; done' |bash
 :
 ~/.venvs/pips/bin/black bin/*.py
 All done! ✨ 🍰 ✨
-6 files left unchanged.
+7 files left unchanged.
 :
 :
 ~/.venvs/pips/bin/flake8 --max-line-length=999 --ignore=E203,W503 bin/*.py
@@ -264,6 +267,33 @@ bin/find.py -type d -name '.?*' -prune -o -print |head -3
 .
 ./bin
 ./bin/__pycache__
+:
+:
+:
+shell2py tac
+def tac_file(file):
+
+    as_file = "/dev/stdin" if (file == "-") else file
+
+    with open(as_file) as reading:
+
+        if not reading.isatty():
+            sys.stderr.write("Press ⌃D EOF to quit\n")
+
+        lines = reading.readlines()
+
+    for line in lines[::-1]:
+        sys.stdout.write(line)
+
+
+files = ["-"]
+for file in files:
+    tac_file(file)
+bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py
+Press ⌃D EOF to quit
+ZC
+B
+A
 :
 :
 :

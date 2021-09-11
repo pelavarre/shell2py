@@ -59,7 +59,7 @@ flake8:
 # --ignore=W503  # 2017 Pep 8 and Black over Flake8 W503 line break before binary op
 
 
-go: go_shell2py go_ls go_echo go_find go_tar
+go: go_shell2py go_ls go_echo go_find go_tac go_tar
 	:
 	:
 
@@ -115,6 +115,13 @@ go_find:
 	:
 	$V find -type d -name '.?*' -prune -o -print
 	bin/find.py -type d -name '.?*' -prune -o -print |head -3
+	:
+
+go_tac:
+	:
+	:
+	$V tac
+	bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py
 	:
 
 go_tar:

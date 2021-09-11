@@ -27,12 +27,14 @@ import find
 
 import ls
 
+import tac
+
 import tar
 
 
-_ = (echo, find, ls, tar)
+_ = (echo, find, ls, tac, tar)
 
-# TODO: import just what the args need
+# TODO: import just the modules needed for this run of the main args
 
 
 # Offer the "--help" there, and also at "-h"
