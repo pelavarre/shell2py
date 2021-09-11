@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
 
 """
-usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE]
+usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN [PATTERN ...]]
 
 walk the files and dirs found inside a top dir compressed as Tgz
+
+positional arguments:
+  PATTERN     list or extract only the files or dirs at or below pattern
 
 optional arguments:
   -h, --help  show this help message and exit
   -t          list every file, without writing any files
-  -x          write out a copy of every file
+  -x          write out a copy of each file, back to where it came from
   -v          trace each file or dir name found inside to stdout
   -k          decline to replace pre-existing output files
   -f FILE     name the file to uncompress
+  -O          write out a copy of each file, but to Stdout, not to where it came from
 
 quirks:
   lets you say 'tvf' to mean '-tvf', 'xvkf' to mean '-xvkf', etc
-  takes '-k' as meaning don't replace existing files, like linux, unlike mac
-  traces files and dirs in linux "u/g" "s" "y-m-D" format, not mac "u" "g" " s" "m d"
-  traces extracts in linux "f" format, not mac "x f" format
-  lists and extracts the compressed files and dirs in python order, not linux order
+  takes '-k' as meaning don't replace existing files, like Linux, unlike Mac
+  traces files and dirs in Linux "u/g" "s" "y-m-D" format, not Mac "u" "g" " s" "m d"
+  traces extracts in Linux "f" format, not Mac "x f" format
+  lists and extracts the compressed files and dirs in python order, differs from Linux
 
 bash script to compress a top dir as Tgz for test:
   rm -fr dir/ dir.tgz
@@ -32,7 +36,7 @@ examples:
   tar xvkf dir.tgz  # copy out what's inside
 """
 
-# TODO: solve -O --wildcards, solve FILE is "-" to mean Stdin
+# TODO: solve FILE "-" means Stdin
 
 import datetime as dt
 import os
@@ -47,10 +51,10 @@ def main(argv=None):
 
     as_argv = sys.argv if (argv is None) else argv
 
-    _scraps_.to_py_main(name=__name__, argv=as_argv)
+    _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
-def bash2py(argv):
+def shell_to_py(argv):
 
     args = parse_tar_args(argv)
 
@@ -65,11 +69,16 @@ def bash2py(argv):
     if (not args.t) and (not args.x):
         return
 
-    if args.k and not args.x:
+    if (args.k or args.O) and not args.x:
         return
 
     if not args.f:
         return
+
+    # Stub out what doesn't work yet
+
+    if args.patterns or args.O:
+        raise NotImplementedError()
 
     # Write the first sourceline
 
@@ -177,7 +186,7 @@ def tar_extract(filepath, args):
 
             if member.isdir():
                 if args.v:
-                    print(name + os.sep)
+                    stderr_print(name + os.sep)
 
                 if not os.path.isdir(outpath):
                     os.makedirs(outpath)
@@ -225,11 +234,11 @@ def tar_member_details(member):
     bits = ((9 * "0") + bin(member.mode)[len("0b") :])[-9:]
     perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
 
-    owns = member.uname + os.sep + member.gname
-    # TODO: default to ".../..." anonymity, and who extracts to match sender anyhow?
+    member_uname = "..."  # ellipsis "..." is more anonymous than "member.uname"
+    member_gname = "..."  # ellipsis "..." is more anonymous than "member.gname"
+    owns = member_uname + os.sep + member_gname
 
-    str_size = str(member.size)
-    # TODO: str_size = "." if member.isdir() else str(member.size)
+    str_size = "." if member.isdir() else str(member.size)  # 0 at dirs is meaningless
 
     when = dt.datetime.fromtimestamp(member.mtime)
     stamp = when.strftime("%Y-%m-%d %H:%M")
@@ -252,7 +261,7 @@ def stderr_print(*args, **kwargs):
     # else caller has to "{}\n".format(...) and flush
 
 
-# TODO: shuffle 'def parse_tar_args' to below 'def main' above 'def bash2py'
+# TODO: shuffle 'def parse_tar_args' to below 'def main' above 'def shell_to_py'
 def parse_tar_args(argv):
 
     as_argv = list(argv)
@@ -262,6 +271,13 @@ def parse_tar_args(argv):
             as_argv[1] = "-" + flags
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
+
+    parser.add_argument(
+        "patterns",
+        metavar="PATTERN",
+        nargs="*",
+        help="list or extract only the files or dirs at or below pattern",
+    )
 
     parser.add_argument(
         "-t",
@@ -274,7 +290,7 @@ def parse_tar_args(argv):
         "-x",
         action="count",
         default=0,
-        help="write out a copy of every file",
+        help="write out a copy of each file, back to where it came from",
     )
 
     parser.add_argument(
@@ -296,6 +312,22 @@ def parse_tar_args(argv):
         metavar="FILE",
         default=0,
         help="name the file to uncompress",
+    )
+
+    parser.add_argument(
+        "-O",
+        action="count",
+        default=0,
+        help="write out a copy of each file, but to Stdout, not to where it came from",
+    )
+
+    got_usage = parser.format_usage()
+    assert (
+        got_usage
+        == "usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN ...]\n"
+    ), got_usage
+    parser.usage = (
+        "tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN [PATTERN ...]]"
     )
 
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)

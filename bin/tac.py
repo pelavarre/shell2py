@@ -28,10 +28,10 @@ import _scraps_
 
 def main(argv=None):
     as_argv = sys.argv if (argv is None) else argv
-    _scraps_.to_py_main(name=__name__, argv=as_argv)
+    _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
-def bash2py(argv):
+def shell_to_py(argv):
 
     args = parse_tac_args(argv)
 
@@ -47,8 +47,8 @@ def bash2py(argv):
     py1 = textwrap.dedent(
         """
         files = $files
-        for file_ in files:
-            tac_file(file_)
+        for file in files:
+            tac_file(file)
         """
     ).strip()
 
@@ -59,9 +59,9 @@ def bash2py(argv):
     return py3
 
 
-def tac_file(file_):
+def tac_file(file):
 
-    with open(file_) as reading:
+    with open(file) as reading:
         isatty = reading.isatty()
 
         if isatty:
@@ -86,7 +86,6 @@ def parse_tac_args(argv):
 
     got_usage = parser.format_usage()
     assert got_usage == "usage: tac.py [-h] [FILE ...]\n", got_usage
-
     parser.usage = "tac.py [-h] [FILE [FILE ...]]"
 
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)

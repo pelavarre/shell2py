@@ -22,15 +22,6 @@ def b():
 #
 
 
-def as_py_argv(words):
-    """Convert a List of Strings to the Python that means form an equal List"""
-
-    argv = [None] + words
-    py = as_py_value(value=argv)
-
-    return py
-
-
 def as_py_value(value):
     """Convert a Value to the Python that means form an equal Value"""
 
@@ -216,14 +207,22 @@ def py_dedent(py, ifline, as_truthy):
 #
 
 
-def shell_to_py(module, argv):
+def exec_shell_to_py(name, argv):
+    """Convert one Shell Line to Python and run it"""
+
+    module = sys.modules[name]
+    py = module_shell_to_py(module, argv=argv)
+    exec(py, globals())
+
+
+def module_shell_to_py(module, argv):
     """Convert one Shell Line to Python, else Print the Help for it, else Exit Loudly"""
 
     file = os.path.basename(module.__file__)
     doc = module.__doc__
-    bash2py = module.bash2py
+    func = module.shell_to_py
 
-    py = bash2py(argv)
+    py = func(argv)
 
     if py is None:
         usage = doc.strip().splitlines()[0]
@@ -239,14 +238,6 @@ def shell_to_py(module, argv):
         sys.exit(0)
 
     return py
-
-
-def to_py_main(name, argv):
-    """Convert one Shell Line to Python and run it"""
-
-    module = sys.modules[name]
-    py = shell_to_py(module, argv=argv)
-    exec(py, globals())
 
 
 #

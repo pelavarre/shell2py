@@ -1,8 +1,15 @@
+# shell2py/Makefile
+
+
+SHELL := /bin/bash -euo pipefail
+
+
 D=bin
 F=bin/shell2py.py
 V=shell2py
 
 
+# define:  make
 default:
 	:
 	:
@@ -12,9 +19,11 @@ default:
 	git diff make.log
 
 
+# run like default 'make', but stop at first fault, allow breakpoints, etc
 secretly: py black flake8 go gitadds banner
 
 
+# invite people to delete the 'exit 3' line and come edit this code with us
 setup:
 	exit 3
 
@@ -35,18 +44,28 @@ setup:
 	pip freeze |wc -l  # often 12
 
 
+# show which Shell is running beneath this Makefile
+sh:
+	:
+	:
+	ps $$$$ | cat -
+
+
+# screen out Python SyntaxError's
 py:
 	:
 	:
 	echo 'for P in bin/*.py; do echo | python3 -m pdb $$P; done' |bash
 
 
+# correct misleading placements of blanks, quotes, commas, parentheses, and such
 black:
 	:
 	:
 	~/.venvs/pips/bin/black $D/*.py
 
 
+# fail loudly asap after edited code starts misleading reviewers
 flake8:
 	:
 	:
@@ -55,11 +74,13 @@ flake8:
 # --ignore=W503  # 2017 Pep 8 and Black over Flake8 W503 line break before binary op
 
 
+# call to test each piece of this Shell2Py package
 go: go_shell2py go_ls go_echo go_find go_tac go_tar
 	:
 	:
 
 
+# test parts of Shell2Py that don't say in Python what you said in Bash
 go_shell2py:
 	:
 	:
@@ -70,6 +91,7 @@ go_shell2py:
 	$V --help
 
 
+# test how Ls shows the files and dirs inside a dir
 go_ls:
 	:
 	:
@@ -81,6 +103,7 @@ go_ls:
 	bin/ls.py -1
 
 
+# test how Echo sees your Shell split apart the chars you're typing
 go_echo:
 	:
 	:
@@ -94,6 +117,7 @@ go_echo:
 	bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
 
 
+# test how Find shows a top dir of dirs, and the files and dirs it contains
 go_find:
 	:
 	:
@@ -113,6 +137,8 @@ go_find:
 	bin/find.py -type d -name '.?*' -prune -o -print |head -3
 	:
 
+
+# test how Tac shows the lines of a file, but in reverse order
 go_tac:
 	:
 	:
@@ -120,6 +146,8 @@ go_tac:
 	bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py
 	:
 
+
+# test how Tar walks the files and dirs found inside a top dir compressed as Tgz
 go_tar:
 	:
 	:
@@ -130,7 +158,7 @@ go_tar:
 	tar czf dir.tgz dir/
 	:
 	$V tar tvf dir.tgz
-	bin/tar.py tvf dir.tgz |sed 's,202.-..-.. ..:..,2021-09-03 22:30,'
+	bin/tar.py tvf dir.tgz |sed 's,202.-..-.. ..:..,2021-09-11 11:30,'
 	:
 	$V tar xvkf dir.tgz
 	rm -fr dir/
@@ -139,15 +167,18 @@ go_tar:
 	bin/tar.py xvf dir.tgz
 	rm -fr dir/ dir.tgz
 	:
-	: "TODO: test 'tar' without '-v'"
+	: TODO: test 'tar tf' and 'tar xf' without 'v'
 
 
+# mention files wrongly added by accident, and Py files wrongly Not added by accident
 gitadds:
 	:
 	:
-	git status --short --ignored |grep '[.]py$$' | cat -
+	git ls-files
+	git status --short --ignored |(grep '[.]py$$' || :)
 
 
+# say where the 'make.log' of default 'make' came from
 banner:
 	:
 	:

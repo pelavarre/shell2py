@@ -14,7 +14,8 @@ optional arguments:
   --verbose   show each word separately, don't join them together as one line
 
 quirks:
-  understand "-n" like bash or zsh echo, unlike sh echo
+  takes "-n" like Bash or Zsh Echo, unlike Sh Echo
+  gets 'shell2py echo ...' to show your Shell splitting apart your chars
 
 examples:
   echo 'Hello, Echo World!'
@@ -30,19 +31,21 @@ import _scraps_
 
 def main(argv=None):
     as_argv = sys.argv if (argv is None) else argv
-    _scraps_.to_py_main(name=__name__, argv=as_argv)
+    _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
-def bash2py(argv):
+def shell_to_py(argv):
 
     args = parse_echo_args(argv)
 
+    echo_py_argv = "echo.py".split() + args.words
+
     if (args.n, args.verbose) == (None, None):
-        return echo(args.words)
+        return echo(argv=echo_py_argv)
     elif (args.n, args.verbose) == (True, None):
-        return echo_n(args.words)
+        return echo_n(argv=echo_py_argv)
     elif (args.n, args.verbose) == (None, True):
-        return echo_verbose(args.words)
+        return echo_verbose(argv=echo_py_argv)
 
 
 def parse_echo_args(argv):
@@ -58,6 +61,7 @@ def parse_echo_args(argv):
         help="show each word separately, don't join them together as one line",
     )
     parser.add_argument("words", metavar="WORD", nargs="...", help="a word to show")
+    # TODO: distribute wise choice of 'nargs="..."' vs 'nargs="*"'
 
     usage = parser.format_usage()
     assert usage == "usage: echo.py [-h] [-n] [--verbose] ...\n", repr(usage)
@@ -70,14 +74,14 @@ def parse_echo_args(argv):
     return args
 
 
-def echo(words):
+def echo(argv):
 
     py = textwrap.dedent(
         """
 
         import sys
 
-        sys.argv = $ARGV  # delete this line to stop replacing the args
+        sys.argv = $ARGV  # unwanted if trying to echo a command line
 
         sys.stderr.flush()  # unneeded if not also writing Stderr
         print(*sys.argv[1:])
@@ -85,19 +89,19 @@ def echo(words):
 
         """
     ).strip()
-    py = py.replace("$ARGV", _scraps_.as_py_argv(words))
+    py = py.replace("$ARGV", _scraps_.as_py_value(argv))
 
     return py
 
 
-def echo_n(words):
+def echo_n(argv):
 
     py = textwrap.dedent(
         """
 
         import sys
 
-        sys.argv = $ARGV  # delete this line to stop replacing the args
+        sys.argv = $ARGV  # unwanted if trying to echo a command line
         str_args = " ".join(sys.argv[1:])
 
         sys.stderr.flush()  # unneeded if not also writing Stderr
@@ -106,19 +110,19 @@ def echo_n(words):
 
         """
     ).strip()
-    py = py.replace("$ARGV", _scraps_.as_py_argv(words))
+    py = py.replace("$ARGV", _scraps_.as_py_value(argv))
 
     return py
 
 
-def echo_verbose(words):
+def echo_verbose(argv):
 
     py = textwrap.dedent(
         """
 
         import sys
 
-        sys.argv = $ARGV  # delete this line to stop replacing the args
+        sys.argv = $ARGV  # unwanted if trying to echo a command line
 
         for (index, arg) in enumerate(sys.argv):
             if index:
@@ -126,7 +130,7 @@ def echo_verbose(words):
 
         """
     ).strip()
-    py = py.replace("$ARGV", _scraps_.as_py_argv(words))
+    py = py.replace("$ARGV", _scraps_.as_py_value(argv))
 
     return py
 

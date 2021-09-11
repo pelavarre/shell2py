@@ -40,34 +40,42 @@ shell2py.py: error: the following arguments are required: VERB
 shell2py -h
 usage: shell2py.py [-h] VERB [WORD [WORD ...]]
 
-translate the words, to python from bash
+say in Python what you said in Shell
 
 positional arguments:
-  VERB        the first word of a shell line, being the program to run
-  WORD        another word of a shell line, being an arg of the program to run
+  VERB        the first word of a Shell line, being the program to run
+  WORD        another word of a Shell line, being an arg of the program to run
 
 optional arguments:
   -h, --help  show this help message and exit
 
 examples:
   shell2py -h  # show this help message and exit
-  shell2py ls -1  # name each file or dir inside the current dir
+  ls.py -1  # show the files and dirs inside a dir
+  shell2py ls -1  # show how to say 'ls -1' in Python
+  echo.py a 'b c'  # show some words
+  shell2py echo a 'b c'  # show how your Shell splits apart the chars you're typing
+  ls bin/*  # show the verbs of Bash that this revision of Shell2Py will explain
 :
 shell2py --help
 usage: shell2py.py [-h] VERB [WORD [WORD ...]]
 
-translate the words, to python from bash
+say in Python what you said in Shell
 
 positional arguments:
-  VERB        the first word of a shell line, being the program to run
-  WORD        another word of a shell line, being an arg of the program to run
+  VERB        the first word of a Shell line, being the program to run
+  WORD        another word of a Shell line, being an arg of the program to run
 
 optional arguments:
   -h, --help  show this help message and exit
 
 examples:
   shell2py -h  # show this help message and exit
-  shell2py ls -1  # name each file or dir inside the current dir
+  ls.py -1  # show the files and dirs inside a dir
+  shell2py ls -1  # show how to say 'ls -1' in Python
+  echo.py a 'b c'  # show some words
+  shell2py echo a 'b c'  # show how your Shell splits apart the chars you're typing
+  ls bin/*  # show the verbs of Bash that this revision of Shell2Py will explain
 :
 :
 shell2py ls || echo "+ exit $?"
@@ -108,7 +116,7 @@ make.log
 shell2py echo 'Hello, Echo World!'
 import sys
 
-sys.argv = [None, "Hello, Echo World!"]  # delete this line to stop replacing the args
+sys.argv = ["echo.py", "Hello, Echo World!"]  # unwanted if trying to echo a command line
 
 sys.stderr.flush()  # unneeded if not also writing Stderr
 print(*sys.argv[1:])
@@ -119,7 +127,7 @@ Hello, Echo World!
 shell2py echo --v 'Hello,' 'Echo World!'
 import sys
 
-sys.argv = [None, "Hello,", "Echo World!"]  # delete this line to stop replacing the args
+sys.argv = ["echo.py", "Hello,", "Echo World!"]  # unwanted if trying to echo a command line
 
 for (index, arg) in enumerate(sys.argv):
     if index:
@@ -131,7 +139,7 @@ bin/echo.py --v 'Hello,' 'Echo World!'
 shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
 import sys
 
-sys.argv = [None, "⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮"]  # delete this line to stop replacing the args
+sys.argv = ["echo.py", "⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮"]  # unwanted if trying to echo a command line
 str_args = " ".join(sys.argv[1:])
 
 sys.stderr.flush()  # unneeded if not also writing Stderr
@@ -268,9 +276,9 @@ bin/find.py -type d -name '.?*' -prune -o -print |head -3
 :
 :
 shell2py tac
-def tac_file(file_):
+def tac_file(file):
 
-    with open(file_) as reading:
+    with open(file) as reading:
         isatty = reading.isatty()
 
         if isatty:
@@ -286,8 +294,8 @@ def tac_file(file_):
 
 
 files = ["/dev/stdin"]
-for file_ in files:
-    tac_file(file_)
+for file in files:
+    tac_file(file)
 bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py
 ZC
 B
@@ -339,11 +347,11 @@ def tar_member_details(member):
     bits = ((9 * "0") + bin(member.mode)[len("0b") :])[-9:]
     perms = d_perm + "".join("rwxrwxrwx"[_] for _ in range(len(bits)))
 
-    owns = member.uname + os.sep + member.gname
-    # TODO: default to ".../..." anonymity, and who extracts to match sender anyhow?
+    member_uname = "..."  # ellipsis "..." is more anonymous than "member.uname"
+    member_gname = "..."  # ellipsis "..." is more anonymous than "member.gname"
+    owns = member_uname + os.sep + member_gname
 
-    str_size = str(member.size)
-    # TODO: str_size = "." if member.isdir() else str(member.size)
+    str_size = "." if member.isdir() else str(member.size)  # 0 at dirs is meaningless
 
     when = dt.datetime.fromtimestamp(member.mtime)
     stamp = when.strftime("%Y-%m-%d %H:%M")
@@ -356,16 +364,16 @@ def tar_member_details(member):
 
 
 tar_list("dir.tgz")
-bin/tar.py tvf dir.tgz |sed 's,202.-..-.. ..:..,2021-09-03 22:30,'
-drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/
-drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/a/
-drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/p/
-drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/p/q/
-drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/p/q/r/
-drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/a/b/
-drwxrwxrwx plavarre/staff 0 2021-09-03 22:30 dir/a/b/c/
--rwxrwxrwx plavarre/staff 6 2021-09-03 22:30 dir/a/b/d
--rwxrwxrwx plavarre/staff 8 2021-09-03 22:30 dir/a/b/e
+bin/tar.py tvf dir.tgz |sed 's,202.-..-.. ..:..,2021-09-11 11:30,'
+drwxrwxrwx .../... . 2021-09-11 11:30 dir/
+drwxrwxrwx .../... . 2021-09-11 11:30 dir/a/
+drwxrwxrwx .../... . 2021-09-11 11:30 dir/p/
+drwxrwxrwx .../... . 2021-09-11 11:30 dir/p/q/
+drwxrwxrwx .../... . 2021-09-11 11:30 dir/p/q/r/
+drwxrwxrwx .../... . 2021-09-11 11:30 dir/a/b/
+drwxrwxrwx .../... . 2021-09-11 11:30 dir/a/b/c/
+-rwxrwxrwx .../... 6 2021-09-11 11:30 dir/a/b/d
+-rwxrwxrwx .../... 8 2021-09-11 11:30 dir/a/b/e
 :
 shell2py tar xvkf dir.tgz
 import os
@@ -398,7 +406,7 @@ def tar_extract(filepath):
             # Trace the walk and make the dirs
 
             if member.isdir():
-                print(name + os.sep)
+                stderr_print(name + os.sep)
 
                 if not os.path.isdir(outpath):
                     os.makedirs(outpath)
@@ -484,12 +492,25 @@ dir/a/b/d
 dir/a/b/e
 rm -fr dir/ dir.tgz
 :
-: "TODO: test 'tar' without '-v'"
+: TODO: test 'tar tf' and 'tar xf' without 'v'
 :
 :
 :
 :
-git status --short --ignored |grep '[.]py$' | cat -
+git ls-files
+.touched-for-test
+Makefile
+README.md
+bin/_scraps_.py
+bin/echo.py
+bin/find.py
+bin/ls.py
+bin/shell2py
+bin/shell2py.py
+bin/tac.py
+bin/tar.py
+make.log
+git status --short --ignored |(grep '[.]py$' || :)
 :
 :
 : copied by: git clone https://github.com/pelavarre/shell2py.git

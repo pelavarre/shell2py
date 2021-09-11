@@ -3,18 +3,22 @@
 """
 usage: shell2py.py [-h] VERB [WORD [WORD ...]]
 
-translate the words, to python from bash
+say in Python what you said in Shell
 
 positional arguments:
-  VERB        the first word of a shell line, being the program to run
-  WORD        another word of a shell line, being an arg of the program to run
+  VERB        the first word of a Shell line, being the program to run
+  WORD        another word of a Shell line, being an arg of the program to run
 
 optional arguments:
   -h, --help  show this help message and exit
 
 examples:
   shell2py -h  # show this help message and exit
-  shell2py ls -1  # name each file or dir inside the current dir
+  ls.py -1  # show the files and dirs inside a dir
+  shell2py ls -1  # show how to say 'ls -1' in Python
+  echo.py a 'b c'  # show some words
+  shell2py echo a 'b c'  # show how your Shell splits apart the chars you're typing
+  ls bin/*  # show the verbs of Bash that this revision of Shell2Py will explain
 """
 
 import os
@@ -73,7 +77,7 @@ if ext == ".py":
     verb = name  # such as "find" from "find.py"
 
 module = sys.modules[verb]
-py = _scraps_.shell_to_py(module, argv=argv)
+py = _scraps_.module_shell_to_py(module, argv=argv)
 print(py)
 
 

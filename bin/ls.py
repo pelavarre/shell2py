@@ -25,10 +25,10 @@ import _scraps_
 
 def main(argv=None):
     as_argv = sys.argv if (argv is None) else argv
-    _scraps_.to_py_main(name=__name__, argv=as_argv)
+    _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
-def bash2py(argv):
+def shell_to_py(argv):
 
     args = parse_ls_args(argv)
     if args.help:

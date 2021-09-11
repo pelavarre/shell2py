@@ -5,7 +5,7 @@ usage: find.py [-h] [--maxdepth MAXDEPTH] [--name NAME] [--not] [--o]
                [--print] [--prune] [--type D]
                [TOP]
 
-show the dirs of dirs here, and the files they contain
+show a top dir of dirs, and the files and dirs it contains
 
 positional arguments:
   TOP                  where to start looking (default: '.')
@@ -21,9 +21,9 @@ optional arguments:
   --type D             find only dirs of dirs, not also files
 
 quirks:
-  linux makes you to type '-' in place of '--' for 'find' options
-  linux makes you to type the TOP before the '-' and '--' options
-  mac makes you spell out 'find .', in place of 'find', to search the current dir
+  Linux makes you to type '-' in place of '--' for 'find' options
+  Linux makes you to type the TOP before the '-' and '--' options
+  Mac makes you spell out 'find .', in place of 'find', to search the current dir
 
 examples:
   find -maxdepth 1 -type d  # dirs inside this dir, but not their children
@@ -45,10 +45,10 @@ def main(argv=None):
 
     as_argv = sys.argv if (argv is None) else argv
 
-    _scraps_.to_py_main(name=__name__, argv=as_argv)
+    _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
-def bash2py(argv):
+def shell_to_py(argv):
 
     args = parse_find_args(argv)
     args_not = vars(args)["not"]
