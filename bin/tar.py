@@ -54,6 +54,81 @@ def main(argv=None):
     _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
+def parse_tar_args(argv):
+
+    as_argv = list(argv)
+    if as_argv[1:]:
+        flags = as_argv[1]
+        if re.match(r"^[txvkf]+$", string=flags):
+            as_argv[1] = "-" + flags
+
+    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
+
+    parser.add_argument(
+        "patterns",
+        metavar="PATTERN",
+        nargs="*",
+        help="list or extract only the files or dirs at or below pattern",
+    )
+
+    parser.add_argument(
+        "-t",
+        action="count",
+        default=0,
+        help="list every file, without writing any files",
+    )
+
+    parser.add_argument(
+        "-x",
+        action="count",
+        default=0,
+        help="write out a copy of each file, back to where it came from",
+    )
+
+    parser.add_argument(
+        "-v",
+        action="count",
+        default=0,
+        help="trace each file or dir name found inside to stdout",
+    )
+
+    parser.add_argument(
+        "-k",
+        action="count",
+        default=0,
+        help="decline to replace pre-existing output files",
+    )
+
+    parser.add_argument(
+        "-f",
+        metavar="FILE",
+        default=0,
+        help="name the file to uncompress",
+    )
+
+    parser.add_argument(
+        "-O",
+        action="count",
+        default=0,
+        help="write out a copy of each file, but to Stdout, not to where it came from",
+    )
+
+    got_usage = parser.format_usage()
+    assert (
+        got_usage
+        == "usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN ...]\n"
+    ), got_usage
+    parser.usage = (
+        "tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN [PATTERN ...]]"
+    )
+
+    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
+
+    args = parser.parse_args(as_argv[1:])
+
+    return args
+
+
 def shell_to_py(argv):
 
     args = parse_tar_args(argv)
@@ -259,82 +334,6 @@ def stderr_print(*args, **kwargs):
     sys.stderr.flush()
 
     # else caller has to "{}\n".format(...) and flush
-
-
-# TODO: shuffle 'def parse_tar_args' to below 'def main' above 'def shell_to_py'
-def parse_tar_args(argv):
-
-    as_argv = list(argv)
-    if as_argv[1:]:
-        flags = as_argv[1]
-        if re.match(r"^[txvkf]+$", string=flags):
-            as_argv[1] = "-" + flags
-
-    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
-
-    parser.add_argument(
-        "patterns",
-        metavar="PATTERN",
-        nargs="*",
-        help="list or extract only the files or dirs at or below pattern",
-    )
-
-    parser.add_argument(
-        "-t",
-        action="count",
-        default=0,
-        help="list every file, without writing any files",
-    )
-
-    parser.add_argument(
-        "-x",
-        action="count",
-        default=0,
-        help="write out a copy of each file, back to where it came from",
-    )
-
-    parser.add_argument(
-        "-v",
-        action="count",
-        default=0,
-        help="trace each file or dir name found inside to stdout",
-    )
-
-    parser.add_argument(
-        "-k",
-        action="count",
-        default=0,
-        help="decline to replace pre-existing output files",
-    )
-
-    parser.add_argument(
-        "-f",
-        metavar="FILE",
-        default=0,
-        help="name the file to uncompress",
-    )
-
-    parser.add_argument(
-        "-O",
-        action="count",
-        default=0,
-        help="write out a copy of each file, but to Stdout, not to where it came from",
-    )
-
-    got_usage = parser.format_usage()
-    assert (
-        got_usage
-        == "usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN ...]\n"
-    ), got_usage
-    parser.usage = (
-        "tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN [PATTERN ...]]"
-    )
-
-    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
-
-    args = parser.parse_args(as_argv[1:])
-
-    return args
 
 
 if __name__ == "__main__":

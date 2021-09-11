@@ -34,20 +34,6 @@ def main(argv=None):
     _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
-def shell_to_py(argv):
-
-    args = parse_echo_args(argv)
-
-    echo_py_argv = "echo.py".split() + args.words
-
-    if (args.n, args.verbose) == (None, None):
-        return echo(argv=echo_py_argv)
-    elif (args.n, args.verbose) == (True, None):
-        return echo_n(argv=echo_py_argv)
-    elif (args.n, args.verbose) == (None, True):
-        return echo_verbose(argv=echo_py_argv)
-
-
 def parse_echo_args(argv):
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
@@ -72,6 +58,20 @@ def parse_echo_args(argv):
     args = parser.parse_args(argv[1:])
 
     return args
+
+
+def shell_to_py(argv):
+
+    args = parse_echo_args(argv)
+
+    echo_py_argv = "echo.py".split() + args.words
+
+    if (args.n, args.verbose) == (None, None):
+        return echo(argv=echo_py_argv)
+    elif (args.n, args.verbose) == (True, None):
+        return echo_n(argv=echo_py_argv)
+    elif (args.n, args.verbose) == (None, True):
+        return echo_verbose(argv=echo_py_argv)
 
 
 def echo(argv):

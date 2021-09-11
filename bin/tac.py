@@ -31,6 +31,25 @@ def main(argv=None):
     _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
+def parse_tac_args(argv):
+
+    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
+
+    parser.add_argument(
+        "files", metavar="FILE", nargs="*", help="a file to copy out (default: stdin)"
+    )
+
+    got_usage = parser.format_usage()
+    assert got_usage == "usage: tac.py [-h] [FILE ...]\n", got_usage
+    parser.usage = "tac.py [-h] [FILE [FILE ...]]"
+
+    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
+
+    args = parser.parse_args(argv[1:])
+
+    return args
+
+
 def shell_to_py(argv):
 
     args = parse_tac_args(argv)
@@ -74,25 +93,6 @@ def tac_file(file):
 
     for line in lines[::-1]:
         sys.stdout.write(line)
-
-
-def parse_tac_args(argv):
-
-    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
-
-    parser.add_argument(
-        "files", metavar="FILE", nargs="*", help="a file to copy out (default: stdin)"
-    )
-
-    got_usage = parser.format_usage()
-    assert got_usage == "usage: tac.py [-h] [FILE ...]\n", got_usage
-    parser.usage = "tac.py [-h] [FILE [FILE ...]]"
-
-    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
-
-    args = parser.parse_args(argv[1:])
-
-    return args
 
 
 if __name__ == "__main__":

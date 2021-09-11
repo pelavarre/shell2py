@@ -48,6 +48,74 @@ def main(argv=None):
     _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
+def parse_find_args(argv):
+
+    as_argv = list(argv)
+    for (index, arg) in enumerate(as_argv):
+        if arg.startswith("-") and not arg.startswith("--"):
+            as_argv[index] = "-" + arg
+
+    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
+
+    parser.add_argument(
+        "top", metavar="TOP", nargs="?", help="where to start looking (default: '.')"
+    )
+
+    parser.add_argument(
+        "--maxdepth",
+        metavar="MAXDEPTH",
+        dest="maxdepth",
+        help="look just here at depth 1, or also children at depth 2, etc",
+    )
+
+    parser.add_argument(
+        "--name",
+        metavar="NAME",
+        dest="name",
+        help="find only names matching the glob pattern, such as '.?*'",
+    )
+
+    parser.add_argument(
+        "--not",
+        action="count",
+        help="reverse what follows, like '-not type d' to find files not dirs",
+    )
+
+    parser.add_argument(
+        "--o",
+        action="count",
+        default=0,
+        help="introduce an alt choice, such as to '-o -print'",
+    )
+
+    parser.add_argument(
+        "--print",
+        action="count",
+        default=0,
+        help="show names not pruned, when asked to '-prune -o -print'",
+    )
+
+    parser.add_argument(
+        "--prune",
+        action="count",
+        default=0,
+        help="don't show these names, maybe show some others",
+    )
+
+    parser.add_argument(
+        "--type",
+        metavar="D",
+        dest="type",
+        help="find only dirs of dirs, not also files",
+    )
+
+    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
+
+    args = parser.parse_args(as_argv[1:])
+
+    return args
+
+
 def shell_to_py(argv):
 
     args = parse_find_args(argv)
@@ -146,74 +214,6 @@ def shell_to_py(argv):
         py = py.replace("$MAXDEPTH", args.maxdepth)
 
     return py
-
-
-def parse_find_args(argv):
-
-    as_argv = list(argv)
-    for (index, arg) in enumerate(as_argv):
-        if arg.startswith("-") and not arg.startswith("--"):
-            as_argv[index] = "-" + arg
-
-    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
-
-    parser.add_argument(
-        "top", metavar="TOP", nargs="?", help="where to start looking (default: '.')"
-    )
-
-    parser.add_argument(
-        "--maxdepth",
-        metavar="MAXDEPTH",
-        dest="maxdepth",
-        help="look just here at depth 1, or also children at depth 2, etc",
-    )
-
-    parser.add_argument(
-        "--name",
-        metavar="NAME",
-        dest="name",
-        help="find only names matching the glob pattern, such as '.?*'",
-    )
-
-    parser.add_argument(
-        "--not",
-        action="count",
-        help="reverse what follows, like '-not type d' to find files not dirs",
-    )
-
-    parser.add_argument(
-        "--o",
-        action="count",
-        default=0,
-        help="introduce an alt choice, such as to '-o -print'",
-    )
-
-    parser.add_argument(
-        "--print",
-        action="count",
-        default=0,
-        help="show names not pruned, when asked to '-prune -o -print'",
-    )
-
-    parser.add_argument(
-        "--prune",
-        action="count",
-        default=0,
-        help="don't show these names, maybe show some others",
-    )
-
-    parser.add_argument(
-        "--type",
-        metavar="D",
-        dest="type",
-        help="find only dirs of dirs, not also files",
-    )
-
-    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
-
-    args = parser.parse_args(as_argv[1:])
-
-    return args
 
 
 if __name__ == "__main__":

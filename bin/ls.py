@@ -28,18 +28,6 @@ def main(argv=None):
     _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
 
 
-def shell_to_py(argv):
-
-    args = parse_ls_args(argv)
-    if args.help:
-        return ""
-
-    args_1 = vars(args)["1"]
-    if args_1:
-        py = ls_1()
-        return py
-
-
 def parse_ls_args(argv):
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__, drop_help=True)
@@ -54,6 +42,18 @@ def parse_ls_args(argv):
     args = parser.parse_args(argv[1:])
 
     return args
+
+
+def shell_to_py(argv):
+
+    args = parse_ls_args(argv)
+    if args.help:
+        return ""
+
+    args_1 = vars(args)["1"]
+    if args_1:
+        py = ls_1()
+        return py
 
 
 def ls_1():
