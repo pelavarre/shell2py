@@ -13,13 +13,13 @@ optional arguments:
   -t          list every file, without writing any files
   -x          write out a copy of each file, back to where it came from
   -v          trace each file or dir name found inside to stdout
-  -k          decline to replace pre-existing output files
+  -k          decline to replace files created before now
   -f FILE     name the file to uncompress
   -O          write out a copy of each file, but to Stdout, not to where it came from
 
 quirks:
   lets you say 'tvf' to mean '-tvf', 'xvkf' to mean '-xvkf', etc
-  takes '-k' as meaning don't replace existing files, like Linux, unlike Mac
+  takes '-k' as meaning don't replace files created before now, like Linux, unlike Mac
   traces files and dirs in Linux "u/g" "s" "y-m-D" format, not Mac "u" "g" " s" "m d"
   traces extracts in Linux "f" format, not Mac "x f" format
   lists and extracts the compressed files and dirs in python order, differs from Linux
@@ -96,7 +96,7 @@ def parse_tar_args(argv):
         "-k",
         action="count",
         default=0,
-        help="decline to replace pre-existing output files",
+        help="decline to replace files created before now",
     )
 
     parser.add_argument(
@@ -133,11 +133,9 @@ def shell_to_py(argv):
 
     args = parse_tar_args(argv)
 
-    module = sys.modules[__name__]
-    with open(module.__file__) as incoming:  # read this sourcefile
-        module_py = incoming.read()
+    patterns = args.patterns
 
-    # Shrug off some obvious contradictions: accept only r'(t|xk|x)v?f'
+    # Reject obvious contradictions
 
     if args.t and args.x:
         return
@@ -150,10 +148,60 @@ def shell_to_py(argv):
     if not args.f:
         return
 
+    # Style the Shell line of the Python
+
+    flags = "".join(_ for _ in "txvkf" if vars(args)[_])
+
+    shline = "tar"
+    if not (args.O or patterns):
+        shline += " " + flags
+    else:
+        shline += " -" + flags
+        if args.O:
+            shline += " -O" + flags
+        if patterns:
+            for pattern in patterns:
+                shline += " " + _scraps_.shlex_quote(pattern)
+
     # Stub out what doesn't work yet
 
-    if args.patterns or args.O:
+    if patterns or args.O:
         raise NotImplementedError()
+
+    # Calculate edits required
+    # TODO: Less explicit deletes of comments before the deletes of code
+
+    commons = list()
+    specials = list()
+
+    commons.append("tar xvkf" if args.x else "tar tvf")
+    specials.append(shline)
+    if args.t and not args.v:
+        commons.append("            # Trace the walk\n\n")
+        specials.append("")
+    if args.x and not args.k:
+        commons.append("                # Skip File's created before now\n\n")
+        specials.append("")
+    if args.x and not args.v:
+        commons.append("# Trace the walk and make the Dirs")
+        specials.append("# Make the Dirs")
+    if args.O:
+        commons.append("# Write the bytes of the Member as a separate File")
+        specials.append("# Write the bytes of the Member as Stdout")
+
+    def str_replace_common_special(py):
+
+        edited = py
+        for (common, special) in zip(commons, specials):
+            edited = edited.replace(common, special)
+
+        return edited
+
+    # Read this sourcefile
+
+    module = sys.modules[__name__]
+    with open(module.__file__) as incoming:
+        module_py = incoming.read()
 
     # Write the first sourceline
 
@@ -161,14 +209,9 @@ def shell_to_py(argv):
     main_func_name = "tar_extract" if args.x else "tar_list"
     py1 = "{}({})".format(main_func_name, rep_file_path)
 
-    # Expand it once, and refine its DocString's
+    # Expand it once
 
     py2 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
-    flags = "".join(_ for _ in "txvkf" if vars(args)[_])
-    py2 = py2.replace(
-        '''a la 'tar tvf'"""''',
-        '''a la 'tar {}'"""'''.format(flags),
-    )
 
     # Expand it to two levels, and drop/keep the source guarded by 'tar -v'
 
@@ -187,20 +230,23 @@ def shell_to_py(argv):
     assert py4 != py3, stderr_print(_scraps_.unified_diff_chars(a=py3, b=py4))
 
     # Expand it once more, if needed to surface the imports of the bottom level
+    # and refine its Docstrings
 
     py5 = py4
     py5 = _scraps_.py_pick_lines(py=py5, module_py=module_py)
     py5 = py5.replace(", args):", "):")
     py5 = _scraps_.py_dedent(py5, ifline="if args.k:", as_truthy=args.k)
     py5 = _scraps_.py_dedent(py5, ifline="if args.v:", as_truthy=args.v)
+    py5 = str_replace_common_special(py5)
 
-    # Expand it one extra time, to demo no more need to expand it
+    # Form it one last time, to show no more need to expand it
 
     py6 = py5
     py6 = _scraps_.py_pick_lines(py=py6, module_py=module_py)
     py6 = py6.replace(", args):", "):")
     py6 = _scraps_.py_dedent(py6, ifline="if args.k:", as_truthy=args.k)
     py6 = _scraps_.py_dedent(py6, ifline="if args.v:", as_truthy=args.v)
+    py6 = str_replace_common_special(py6)
     assert py6 == py5, stderr_print(_scraps_.unified_diff_chars(a=py5, b=py6))
 
     # Succeed
@@ -211,7 +257,7 @@ def shell_to_py(argv):
 def tar_list(filepath, args):
     """List tarred files, a la 'tar tvf'"""
 
-    # Walk to each file or dir found inside
+    # Visit each Dir or File
 
     top = os.path.realpath(os.getcwd())
     with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
@@ -220,7 +266,7 @@ def tar_list(filepath, args):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to extract above Top
+            # Decline to visit above Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -272,7 +318,7 @@ def tar_extract(filepath, args):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to extract above Top
+            # Decline to visit above Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -280,7 +326,7 @@ def tar_extract(filepath, args):
             if top != outdir:
                 assert outdir.startswith(top + os.sep), (outdir, top)
 
-            # Trace the walk and make the dirs
+            # Trace the walk and make the Dirs
 
             if member.isdir():
                 if args.v:
@@ -294,9 +340,11 @@ def tar_extract(filepath, args):
             if args.v:
                 print(name)
 
-            # Skip existing files
+            # Visit each Dir or File
 
             with untarring.extractfile(name) as incoming:
+
+                # Skip File's created before now
 
                 if args.k:
                     if os.path.exists(name):
@@ -307,7 +355,7 @@ def tar_extract(filepath, args):
 
                         continue
 
-                # Save the bytes of the member as a file
+                # Write the bytes of the Member as a separate File
 
                 member_bytes = incoming.read()
                 member_size = len(member_bytes)

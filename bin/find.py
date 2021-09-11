@@ -120,12 +120,13 @@ def parse_find_args(argv):
 def shell_to_py(argv):
 
     args = parse_find_args(argv)
+
     args_print = vars(args)["print"]  # although Python 3 doesn't reserve 'print'
     args_not = vars(args)["not"]
 
-    #
-
     top = args.top if args.top else "."
+
+    # Reject obvious contradictions
 
     if args.type and args.type != "d":
         return
@@ -147,7 +148,7 @@ def shell_to_py(argv):
         if not drop_hidden:
             return
 
-    #
+    # Style the Shell line of the Python
 
     shline = "find"
     if args.maxdepth:
@@ -165,7 +166,7 @@ def shell_to_py(argv):
     if args_print:
         shline += " --print"
 
-    #
+    # Form the Python
 
     py = '''
 

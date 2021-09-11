@@ -1,6 +1,6 @@
 :
 :
-echo 'for P in bin/*.py; do echo | python3 -m pdb $P; done' |bash
+echo 'for P in bin/*.py; do echo |python3 -m pdb $P; done' |bash
 > /Users/plavarre/Public/shell2py/bin/_scraps_.py(1)<module>()
 -> """
 (Pdb) (Pdb)
@@ -319,10 +319,12 @@ A
 :
 :
 rm -fr dir/ dir.tgz
+:
 mkdir -p dir/a/b/c dir/p/q/r
 echo hello >dir/a/b/d
 echo goodbye > dir/a/b/e
 tar czf dir.tgz dir/
+:
 :
 shell2py tar tvf dir.tgz
 import datetime as dt
@@ -333,7 +335,7 @@ import tarfile
 def tar_list(filepath):
     """List tarred files, a la 'tar tvf'"""
 
-    # Walk to each file or dir found inside
+    # Visit each Dir or File
 
     top = os.path.realpath(os.getcwd())
     with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
@@ -342,7 +344,7 @@ def tar_list(filepath):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to extract above Top
+            # Decline to visit above Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -410,7 +412,7 @@ def tar_extract(filepath):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to extract above Top
+            # Decline to visit above Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -418,7 +420,7 @@ def tar_extract(filepath):
             if top != outdir:
                 assert outdir.startswith(top + os.sep), (outdir, top)
 
-            # Trace the walk and make the dirs
+            # Trace the walk and make the Dirs
 
             if member.isdir():
                 stderr_print(name + os.sep)
@@ -430,9 +432,11 @@ def tar_extract(filepath):
 
             print(name)
 
-            # Skip existing files
+            # Visit each Dir or File
 
             with untarring.extractfile(name) as incoming:
+
+                # Skip File's created before now
 
                 if os.path.exists(name):
                     stderr_print(
@@ -442,7 +446,7 @@ def tar_extract(filepath):
 
                     continue
 
-                # Save the bytes of the member as a file
+                # Write the bytes of the Member as a separate File
 
                 member_bytes = incoming.read()
                 member_size = len(member_bytes)
@@ -495,6 +499,73 @@ dir/a/b/e
 tar.py: dir/a/b/e: Cannot open: File exists
 tar: Exiting with failure status due to previous errors
 + exit 2
+:
+shell2py tar xvf dir.tgz
+import os
+import sys
+import tarfile
+
+
+def tar_extract(filepath):
+    """Extract tarred files, a la 'tar xvf'"""
+
+    # Walk to each file or dir found inside
+
+    top = os.path.realpath(os.getcwd())
+    with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
+        names = untarring.getnames()
+
+        for name in names:
+            member = untarring.getmember(name)
+
+            # Decline to visit above Top
+
+            outpath = os.path.realpath(name)
+            outdir = os.path.dirname(outpath)
+
+            if top != outdir:
+                assert outdir.startswith(top + os.sep), (outdir, top)
+
+            # Trace the walk and make the Dirs
+
+            if member.isdir():
+                stderr_print(name + os.sep)
+
+                if not os.path.isdir(outpath):
+                    os.makedirs(outpath)
+
+                continue
+
+            print(name)
+
+            # Visit each Dir or File
+
+            with untarring.extractfile(name) as incoming:
+
+                # Write the bytes of the Member as a separate File
+
+                member_bytes = incoming.read()
+                member_size = len(member_bytes)
+                assert member_size == member.size, (member_size, member.size)
+
+                with open(outpath, "wb") as outgoing:
+                    outgoing.write(member_bytes)
+
+                # TODO: also extract the perms, stamp, and owns
+
+
+# deffed in many files  # missing from docs.python.org
+def stderr_print(*args, **kwargs):
+    """Like Print, but flush don't write Stdout and do write and flush Stderr"""
+
+    sys.stdout.flush()
+    print(*args, **kwargs, file=sys.stderr)
+    sys.stderr.flush()
+
+    # else caller has to "{}\n".format(...) and flush
+
+
+tar_extract("dir.tgz")
 bin/tar.py xvf dir.tgz
 dir/
 dir/a/
@@ -505,6 +576,178 @@ dir/a/b/
 dir/a/b/c/
 dir/a/b/d
 dir/a/b/e
+:
+:
+shell2py tar tf dir.tgz
+import os
+import tarfile
+
+
+def tar_list(filepath):
+    """List tarred files, a la 'tar tf'"""
+
+    # Visit each Dir or File
+
+    top = os.path.realpath(os.getcwd())
+    with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
+        names = untarring.getnames()
+
+        for name in names:
+            member = untarring.getmember(name)
+
+            # Decline to visit above Top
+
+            outpath = os.path.realpath(name)
+            outdir = os.path.dirname(outpath)
+
+            if top != outdir:
+                assert outdir.startswith(top + os.sep), (outdir, top)
+
+
+tar_list("dir.tgz")
+bin/tar.py tf dir.tgz
+:
+shell2py tar xkf dir.tgz
+import os
+import sys
+import tarfile
+
+
+def tar_extract(filepath):
+    """Extract tarred files, a la 'tar xkf'"""
+
+    exists = 0
+
+    # Walk to each file or dir found inside
+
+    top = os.path.realpath(os.getcwd())
+    with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
+        names = untarring.getnames()
+
+        for name in names:
+            member = untarring.getmember(name)
+
+            # Decline to visit above Top
+
+            outpath = os.path.realpath(name)
+            outdir = os.path.dirname(outpath)
+
+            if top != outdir:
+                assert outdir.startswith(top + os.sep), (outdir, top)
+
+            # Make the Dirs
+
+            if member.isdir():
+
+                if not os.path.isdir(outpath):
+                    os.makedirs(outpath)
+
+                continue
+
+            # Visit each Dir or File
+
+            with untarring.extractfile(name) as incoming:
+
+                # Skip File's created before now
+
+                if os.path.exists(name):
+                    stderr_print(
+                        "tar.py: {}: Cannot open: File exists".format(name)
+                    )
+                    exists += 1
+
+                    continue
+
+                # Write the bytes of the Member as a separate File
+
+                member_bytes = incoming.read()
+                member_size = len(member_bytes)
+                assert member_size == member.size, (member_size, member.size)
+
+                with open(outpath, "wb") as outgoing:
+                    outgoing.write(member_bytes)
+
+                # TODO: also extract the perms, stamp, and owns
+
+    if exists:
+        stderr_print("tar: Exiting with failure status due to previous errors")
+        sys.exit(2)
+
+
+# deffed in many files  # missing from docs.python.org
+def stderr_print(*args, **kwargs):
+    """Like Print, but flush don't write Stdout and do write and flush Stderr"""
+
+    sys.stdout.flush()
+    print(*args, **kwargs, file=sys.stderr)
+    sys.stderr.flush()
+
+    # else caller has to "{}\n".format(...) and flush
+
+
+tar_extract("dir.tgz")
+rm -fr dir/
+bin/tar.py xkf dir.tgz
+bin/tar.py xkf dir.tgz || echo "+ exit $?"
+tar.py: dir/a/b/d: Cannot open: File exists
+tar.py: dir/a/b/e: Cannot open: File exists
+tar: Exiting with failure status due to previous errors
++ exit 2
+:
+shell2py tar xf dir.tgz
+import os
+import tarfile
+
+
+def tar_extract(filepath):
+    """Extract tarred files, a la 'tar xf'"""
+
+    # Walk to each file or dir found inside
+
+    top = os.path.realpath(os.getcwd())
+    with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
+        names = untarring.getnames()
+
+        for name in names:
+            member = untarring.getmember(name)
+
+            # Decline to visit above Top
+
+            outpath = os.path.realpath(name)
+            outdir = os.path.dirname(outpath)
+
+            if top != outdir:
+                assert outdir.startswith(top + os.sep), (outdir, top)
+
+            # Make the Dirs
+
+            if member.isdir():
+
+                if not os.path.isdir(outpath):
+                    os.makedirs(outpath)
+
+                continue
+
+            # Visit each Dir or File
+
+            with untarring.extractfile(name) as incoming:
+
+                # Write the bytes of the Member as a separate File
+
+                member_bytes = incoming.read()
+                member_size = len(member_bytes)
+                assert member_size == member.size, (member_size, member.size)
+
+                with open(outpath, "wb") as outgoing:
+                    outgoing.write(member_bytes)
+
+                # TODO: also extract the perms, stamp, and owns
+
+
+tar_extract("dir.tgz")
+bin/tar.py xf dir.tgz
+:
+:
 rm -fr dir/ dir.tgz
 :
 : "TODO: test 'tar tf' and 'tar xf' without 'v'"
@@ -525,7 +768,7 @@ bin/shell2py.py
 bin/tac.py
 bin/tar.py
 make.log
-git status --short --ignored |(grep '[.]py$' || :)
+git status --short --ignored |grep -v '^ M ' |(grep '[.]py$' || :)
 :
 :
 : copied by: git clone https://github.com/pelavarre/shell2py.git

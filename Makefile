@@ -50,14 +50,14 @@ setup:
 sh:
 	:
 	:
-	ps $$$$ | cat -
+	ps $$$$ |cat -
 
 
 # screen out Python SyntaxError's
 py:
 	:
 	:
-	echo 'for P in bin/*.py; do echo | python3 -m pdb $$P; done' |bash
+	echo 'for P in bin/*.py; do echo |python3 -m pdb $$P; done' |bash
 
 
 # correct misleading placements of blanks, quotes, commas, parentheses, and such
@@ -176,10 +176,12 @@ go_tar:
 	:
 	:
 	rm -fr dir/ dir.tgz
+	:
 	mkdir -p dir/a/b/c dir/p/q/r
 	echo hello >dir/a/b/d
 	echo goodbye > dir/a/b/e
 	tar czf dir.tgz dir/
+	:
 	:
 	$V tar tvf dir.tgz
 	bin/tar.py tvf dir.tgz |sed 's,202.-..-.. ..:..,2021-09-11 11:30,'
@@ -188,7 +190,23 @@ go_tar:
 	rm -fr dir/
 	bin/tar.py xvkf dir.tgz
 	bin/tar.py xvkf dir.tgz || echo "+ exit $$?"
+	:
+	$V tar xvf dir.tgz
 	bin/tar.py xvf dir.tgz
+	:
+	:
+	$V tar tf dir.tgz
+	bin/tar.py tf dir.tgz
+	:
+	$V tar xkf dir.tgz
+	rm -fr dir/
+	bin/tar.py xkf dir.tgz
+	bin/tar.py xkf dir.tgz || echo "+ exit $$?"
+	:
+	$V tar xf dir.tgz
+	bin/tar.py xf dir.tgz
+	:
+	:
 	rm -fr dir/ dir.tgz
 	:
 	: "TODO: test 'tar tf' and 'tar xf' without 'v'"
@@ -199,7 +217,7 @@ gitadds:
 	:
 	:
 	git ls-files
-	git status --short --ignored |(grep '[.]py$$' || :)
+	git status --short --ignored |grep -v '^ M ' |(grep '[.]py$$' || :)
 
 
 # say where the 'make.log' of default 'make' came from

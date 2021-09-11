@@ -14,7 +14,7 @@ optional arguments:
   --verbose   show each word separately, don't join them together as one line
 
 quirks:
-  takes "-n" like Bash or Zsh Echo, unlike Sh Echo
+  takes '-n' like Bash or Zsh Echo, unlike Sh Echo
   gets 'shell2py echo ...' to show your Shell splitting apart your chars
 
 examples:
