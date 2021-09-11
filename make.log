@@ -1,8 +1,5 @@
 :
 :
-: copied from https://github.com/pelavarre/shell2py/blob/main/make.log
-:
-:
 echo 'for P in bin/*.py; do echo | python3 -m pdb $P; done' |bash
 > /Users/plavarre/Public/shell2py/bin/_scraps_.py(1)<module>()
 -> """
@@ -271,26 +268,27 @@ bin/find.py -type d -name '.?*' -prune -o -print |head -3
 :
 :
 shell2py tac
-def tac_file(file):
+def tac_file(file_):
 
-    as_file = "/dev/stdin" if (file == "-") else file
+    with open(file_) as reading:
+        isatty = reading.isatty()
 
-    with open(as_file) as reading:
-
-        if not reading.isatty():
+        if isatty:
             sys.stderr.write("Press ⌃D EOF to quit\n")
 
         lines = reading.readlines()
+
+    if isatty:
+        sys.stderr.write("\n")
 
     for line in lines[::-1]:
         sys.stdout.write(line)
 
 
-files = ["-"]
-for file in files:
-    tac_file(file)
+files = ["/dev/stdin"]
+for file_ in files:
+    tac_file(file_)
 bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py
-Press ⌃D EOF to quit
 ZC
 B
 A
@@ -489,3 +487,9 @@ rm -fr dir/ dir.tgz
 : "TODO: test 'tar' without '-v'"
 :
 :
+:
+:
+git status --short --ignored |grep '[.]py$' | cat -
+:
+:
+: copied by: git clone https://github.com/pelavarre/shell2py.git

@@ -17,6 +17,7 @@ examples:
   shell2py ls -1  # name each file or dir inside the current dir
 """
 
+import os
 import sys
 
 import _scraps_
@@ -62,8 +63,14 @@ if not argv:
 # Translate one line of Shell
 
 verb = arg
-if verb.startswith("bin/") and verb.endswith(".py"):
-    verb = verb[len("bin/") :][: -len(".py")]  # such as "find" from "bin/find.py"
+
+(dirname, basename) = os.path.split(verb)
+if dirname == "bin":
+    verb = basename  # such as "find.py" from "bin/find.py"
+
+(name, ext) = os.path.splitext(verb)
+if ext == ".py":
+    verb = name  # such as "find" from "find.py"
 
 module = sys.modules[verb]
 py = _scraps_.shell_to_py(module, argv=argv)

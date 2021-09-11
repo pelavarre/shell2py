@@ -4,19 +4,15 @@ V=shell2py
 
 
 default:
-	clear
-	make banner py black flake8 go 2>&1 |sed 's,  *$$,,' |tee make.log
-
-
-secretly:
-	clear
-	make banner py black flake8 go
-
-
-banner:
 	:
 	:
-	: copied from https://github.com/pelavarre/shell2py/blob/main/make.log
+	: press Control+C if you meant:  make secretly
+	:
+	make secretly 2>&1 |sed 's,  *$$,,' >make.log
+	git diff make.log
+
+
+secretly: py black flake8 go gitadds banner
 
 
 setup:
@@ -144,6 +140,18 @@ go_tar:
 	rm -fr dir/ dir.tgz
 	:
 	: "TODO: test 'tar' without '-v'"
+
+
+gitadds:
+	:
+	:
+	git status --short --ignored |grep '[.]py$$' | cat -
+
+
+banner:
+	:
+	:
+	: copied by: git clone https://github.com/pelavarre/shell2py.git
 
 
 # copied by: git clone https://github.com/pelavarre/shell2py.git
