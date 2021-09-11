@@ -15,12 +15,14 @@ default:
 	:
 	: press Control+C if you meant:  make secretly
 	:
-	make secretly 2>&1 |sed 's,  *$$,,' >make.log
+	rm -fr file dir/ dir.tgz
+	time make secretly 2>&1 |sed 's,  *$$,,' >make.log
 	git diff make.log
 
 
 # run like default 'make', but stop at first fault, allow breakpoints, etc
 secretly: py black flake8 go gitadds banner
+	rm -fr file dir/ dir.tgz
 
 
 # invite people to delete the 'exit 3' line and come edit this code with us
@@ -125,17 +127,37 @@ go_find:
 	bin/find.py -maxdepth 1 -type d |grep i
 	:
 	$V find -name '.?*'
-	bin/find.py -name '.?*' |head -3
+	bin/find.py -name '.?*' >file
+	head -3 file
 	:
 	$V find -name '.?*' -prune -o -print
-	bin/find.py -name '.?*' -prune -o -print |head -3
+	bin/find.py -name '.?*' -prune -o -print >file
+	head -3 file
 	:
 	$V find -type d
-	bin/find.py -type d |head -3
+	bin/find.py -type d >file
+	head -3 file
 	:
-	$V find -type d -name '.?*' -prune -o -print
-	bin/find.py -type d -name '.?*' -prune -o -print |head -3
+	$V find -name '.?*' -prune -o -type d -print
+	bin/find.py -name '.?*' -prune -o -type d -print >file
+	head -3 file
 	:
+
+
+# demo Python freaking over 'signal.SIGPIPE' not caught between 'exec' and 'print'
+sigpipe:
+	:
+	: macOS Terminal =>
+	:
+	:   'BrokenPipeError: [Errno 32] Broken pipe'
+	:   'Exception ignored in: <_io.TextIOWrapper'
+	:       "name='<stdout>' mode='w' encoding='utf-8'>'"
+	:   'make: *** [sigpipe] Error 120'
+	:   'zsh: exit 2     make xyz'
+	:
+	python3 -c 'import signal; print(int(signal.SIGPIPE))'  # 13 == 141 - 128
+	(find ~ |head -3) || echo "+ exit $$?"  # + exit 141
+	(bin/find.py ~ |head -3) || echo "+ exit $$?"  # + exit 120
 
 
 # test how Tac shows the lines of a file, but in reverse order
@@ -167,7 +189,7 @@ go_tar:
 	bin/tar.py xvf dir.tgz
 	rm -fr dir/ dir.tgz
 	:
-	: TODO: test 'tar tf' and 'tar xf' without 'v'
+	: "TODO: test 'tar tf' and 'tar xf' without 'v'"
 
 
 # mention files wrongly added by accident, and Py files wrongly Not added by accident

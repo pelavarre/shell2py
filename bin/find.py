@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-usage: find.py [-h] [--maxdepth MAXDEPTH] [--name NAME] [--not] [--o]
-               [--print] [--prune] [--type D]
+usage: find.py [-h] [--maxdepth MAXDEPTH] [--name NAME] [--not] [--prune]
+               [--o] [--type D] [--print]
                [TOP]
 
 show a top dir of dirs, and the files and dirs it contains
@@ -15,15 +15,16 @@ optional arguments:
   --maxdepth MAXDEPTH  look just here at depth 1, or also children at depth 2, etc
   --name NAME          find only names matching the glob pattern, such as '.?*'
   --not                reverse what follows, like '-not type d' to find files not dirs
-  --o                  introduce an alt choice, such as to '-o -print'
-  --print              show names not pruned, when asked to '-prune -o -print'
   --prune              don't show these names, maybe show some others
+  --o                  introduce an alt choice, such as to '-o -print'
   --type D             find only dirs of dirs, not also files
+  --print              show names not pruned, when asked to '-prune -o -print'
 
 quirks:
   Linux makes you to type '-' in place of '--' for 'find' options
   Linux makes you to type the TOP before the '-' and '--' options
   Mac makes you spell out 'find .', in place of 'find', to search the current dir
+  our code misunderstands:  find . -type d -name '.?*' -prune -o -print
 
 examples:
   find -maxdepth 1 -type d  # dirs inside this dir, but not their children
@@ -82,20 +83,6 @@ def parse_find_args(argv):
     )
 
     parser.add_argument(
-        "--o",
-        action="count",
-        default=0,
-        help="introduce an alt choice, such as to '-o -print'",
-    )
-
-    parser.add_argument(
-        "--print",
-        action="count",
-        default=0,
-        help="show names not pruned, when asked to '-prune -o -print'",
-    )
-
-    parser.add_argument(
         "--prune",
         action="count",
         default=0,
@@ -103,10 +90,24 @@ def parse_find_args(argv):
     )
 
     parser.add_argument(
+        "--o",
+        action="count",
+        default=0,
+        help="introduce an alt choice, such as to '-o -print'",
+    )
+
+    parser.add_argument(
         "--type",
         metavar="D",
         dest="type",
         help="find only dirs of dirs, not also files",
+    )
+
+    parser.add_argument(
+        "--print",
+        action="count",
+        default=0,
+        help="show names not pruned, when asked to '-prune -o -print'",
     )
 
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
@@ -119,7 +120,10 @@ def parse_find_args(argv):
 def shell_to_py(argv):
 
     args = parse_find_args(argv)
+    args_print = vars(args)["print"]  # although Python 3 doesn't reserve 'print'
     args_not = vars(args)["not"]
+
+    #
 
     top = args.top if args.top else "."
 
@@ -129,7 +133,7 @@ def shell_to_py(argv):
     drop_deeper = args.maxdepth
     drop_dirs = args.type and args_not
     drop_files = args.type and not args_not
-    drop_hidden = args.name and args.prune and args.o and args.print
+    drop_hidden = args.name and args.prune and args.o and args_print
     take_hidden = args.name and not drop_hidden
 
     assert not (drop_dirs and drop_files)
@@ -139,17 +143,36 @@ def shell_to_py(argv):
         if not drop_dirs:
             return
 
-    if args.prune or args.o or args.print:
+    if args.prune or args.o or args_print:
         if not drop_hidden:
             return
 
-    # TODO: comment options into source
+    #
 
-    py = """
+    shline = "find"
+    if args.maxdepth:
+        shline += " --maxdepth {}".format(args.maxdepth)
+    if args.name:
+        shline += " --name {}".format(_scraps_.shlex_quote(args.name))
+    if args_not:
+        shline += " --not"
+    if args.prune:
+        shline += " --prune"
+    if args.o:
+        shline += " --o"
+    if args.type:
+        shline += " --type {}".format(args.type)
+    if args_print:
+        shline += " --print"
+
+    #
+
+    py = '''
 
         import os
 
         def find(top):
+            """$SHLINE"""
 
             print(top)
             for (dirpath, dirnames, filenames) in os.walk(top):
@@ -194,7 +217,7 @@ def shell_to_py(argv):
 
         find(top=$TOP)
 
-        """
+        '''
 
     py = _scraps_.c_pre_process(
         py,
@@ -208,6 +231,7 @@ def shell_to_py(argv):
     )
 
     py = py.replace("$TOP", _scraps_.as_py_value(top))
+    py = py.replace("$SHLINE", shline)
     if args.maxdepth is None:
         assert "$MAXDEPTH" not in py
     else:

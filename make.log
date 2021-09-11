@@ -156,6 +156,7 @@ shell2py find -maxdepth 1 -type d
 import os
 
 def find(top):
+    """find --maxdepth 1 --type d"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
@@ -179,6 +180,7 @@ shell2py find -name '.?*'
 import os
 
 def find(top):
+    """find --name '.?*'"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
@@ -198,7 +200,8 @@ def find(top):
             print(found_file)
 
 find(top=".")
-bin/find.py -name '.?*' |head -3
+bin/find.py -name '.?*' >file
+head -3 file
 .
 ./.git
 ./.touched-for-test
@@ -207,6 +210,7 @@ shell2py find -name '.?*' -prune -o -print
 import os
 
 def find(top):
+    """find --name '.?*' --prune --o --print"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
@@ -226,15 +230,17 @@ def find(top):
             print(found_file)
 
 find(top=".")
-bin/find.py -name '.?*' -prune -o -print |head -3
+bin/find.py -name '.?*' -prune -o -print >file
+head -3 file
 .
 ./bin
-./Makefile
+./file
 :
 shell2py find -type d
 import os
 
 def find(top):
+    """find --type d"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
@@ -246,15 +252,17 @@ def find(top):
 
 
 find(top=".")
-bin/find.py -type d |head -3
+bin/find.py -type d >file
+head -3 file
 .
 ./bin
 ./.git
 :
-shell2py find -type d -name '.?*' -prune -o -print
+shell2py find -name '.?*' -prune -o -type d -print
 import os
 
 def find(top):
+    """find --name '.?*' --prune --o --type d --print"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
@@ -268,7 +276,8 @@ def find(top):
 
 
 find(top=".")
-bin/find.py -type d -name '.?*' -prune -o -print |head -3
+bin/find.py -name '.?*' -prune -o -type d -print >file
+head -3 file
 .
 ./bin
 ./bin/__pycache__
@@ -492,7 +501,7 @@ dir/a/b/d
 dir/a/b/e
 rm -fr dir/ dir.tgz
 :
-: TODO: test 'tar tf' and 'tar xf' without 'v'
+: "TODO: test 'tar tf' and 'tar xf' without 'v'"
 :
 :
 :
@@ -514,3 +523,4 @@ git status --short --ignored |(grep '[.]py$' || :)
 :
 :
 : copied by: git clone https://github.com/pelavarre/shell2py.git
+rm -fr file dir/ dir.tgz

@@ -5,11 +5,15 @@ Collect scraps of Code held in common by the Py near here, aka tools, utils, etc
 import __main__
 import argparse
 import ast
+import contextlib
 import difflib
 import os
 import pdb
 import re
+import shlex
+import string
 import sys
+
 import textwrap
 
 
@@ -212,6 +216,7 @@ def exec_shell_to_py(name, argv):
 
     module = sys.modules[name]
     py = module_shell_to_py(module, argv=argv)
+
     exec(py, globals())
 
 
@@ -243,6 +248,29 @@ def module_shell_to_py(module, argv):
 #
 # Run with a layer of general-purpose Python idioms
 #
+
+
+# deffed in many files  # missing from docs.python.org
+class BrokenPipeErrorSink(contextlib.ContextDecorator):
+    """Cut unhandled BrokenPipeError down to sys.exit(1)
+
+    Test with large Stdout cut sharply, such as:  find.py ~ |head
+
+    Cut more narrowly than:  signal.signal(signal.SIGPIPE, handler=signal.SIG_DFL)
+    As per https://docs.python.org/3/library/signal.html#note-on-sigpipe
+    """
+
+    def __enter__(self, returncode=1):
+        self.returncode = returncode
+        return self
+
+    def __exit__(self, *exc_info):
+        (exc_type, exc, exc_traceback) = exc_info  # may be (None, None, None)
+        if isinstance(exc, BrokenPipeError):  # catch one
+            null_fileno = os.open(os.devnull, flags=os.O_WRONLY)
+            os.dup2(null_fileno, sys.stdout.fileno())  # avoid the next one
+
+            sys.exit(self.returncode)
 
 
 # deffed in many files  # missing from docs.python.org
@@ -396,6 +424,35 @@ def exit_unless_doc_eq(parser, file, doc):
         sys.stderr.write("\n".join(lines) + "\n")
 
         sys.exit(1)  # trust caller to log SystemExit exceptions well
+
+
+# deffed in many files  # missing from docs.python.org till Oct/2019 Python 3.8
+def shlex_quote(arg):
+    """Mark up with quote marks and backslashes , but only as needed"""
+
+    # trust the library, if available
+
+    if hasattr(shlex, "quote"):
+        quoted = shlex.quote(arg)
+        return quoted
+
+    # emulate the library roughly, because often good enough
+
+    mostly_harmless = set(
+        "%+,-./"
+        + string.digits
+        + ":@"
+        + string.ascii_uppercase
+        + "_"
+        + string.ascii_lowercase
+    )
+
+    likely_harmful = set(arg) - set(mostly_harmless)
+    if likely_harmful:
+        quoted = repr(arg)  # as if the Py rules agree with Sh rules
+        return quoted
+
+    return arg
 
 
 # deffed in many files  # missing from docs.python.org
