@@ -19,9 +19,10 @@ optional arguments:
 
 quirks:
   lets you say classic 'tvf' to mean '-tvf', classic 'xvkf' to mean '-xvkf', etc
-  takes '-k' as meaning don't replace files created before now, like Linux, unlike Mac
+  takes '-k' as meaning don't replace files created before now - like Linux, unlike Mac
   traces '-tv' dirs and files like Linux "u/g s y-m-D", not like Mac "u g s m d"
   traces '-x' dirs and files in Linux "f" format, not Mac "x f" format
+  exits 1 if any pattern matches no names - like Mac, vs Linux exiting 2 and more often
 
 Bash script to compress a top dir as Tgz for test:
   rm -fr dir/ dir.tgz
@@ -31,13 +32,16 @@ Bash script to compress a top dir as Tgz for test:
   tar czf dir.tgz dir/
 
 examples:
-  tar tvf dir.tgz  # say what's inside
+  tar tvf dir.tgz  # show what's inside
   tar xvkf dir.tgz  # copy out what's inside
+  tar tvf dir.tgz dir/a  # show just some of what's inside
+  tar.py tvf dir.tgz dir dir/a// dir  # accept redundancy in every order, like Mac
 """
 
 # TODO: solve FILE "-" means Stdin
 
 import datetime as dt
+import fnmatch
 import os
 import re
 import sys
@@ -176,17 +180,33 @@ def shell_to_py(argv):
     commons.append("tar xvkf" if args.x else "tar tvf")
     specials.append(shline)
     if args.t and not args.v:
-        commons.append("            # Trace the walk\n\n")
+        commons.append(
+            "            # Trace the walk\n\n",
+        )
         specials.append("")
     if args.x and not args.k:
-        commons.append("                # Skip File's created before now\n\n")
+        commons.append(
+            "                # Skip File's created before now\n\n",
+        )
         specials.append("")
     if args.x and not args.v:
         commons.append("# Trace the walk and make the Dirs")
         specials.append("# Make the Dirs")
     if args.O:
-        commons.append("# Write the bytes of the Member as a separate File")
-        specials.append("# Write the bytes of the Member as Stdout")
+        commons.append(
+            "                # Write the bytes as a separate File\n\n",
+        )
+        specials.append("")
+    if not args.O:
+        commons.append(
+            "                # Write the bytes to Stdout\n\n",
+        )
+        specials.append("")
+    if not args.patterns:
+        commons.append(
+            "            # Skip the Dir or File if not at or below Pattern\n\n",
+        )
+        specials.append("")
 
     def str_replace_common_special(py):
 
@@ -219,6 +239,9 @@ def shell_to_py(argv):
     py3 = _scraps_.py_dedent(py3, ifline="if args.k:", as_truthy=args.k)
     py3 = _scraps_.py_dedent(py3, ifline="if args.v:", as_truthy=args.v)
     py3 = _scraps_.py_dedent(py3, ifline="if not args.v:", as_truthy=(not args.v))
+    py3 = _scraps_.py_dedent(py3, ifline="if args.patterns:", as_truthy=args.patterns)
+    py3 = _scraps_.py_dedent(py3, ifline="if args.O:", as_truthy=args.O)
+    py3 = _scraps_.py_dedent(py3, ifline="if not args.O:", as_truthy=(not args.O))
 
     # Expand it to three levels
 
@@ -228,6 +251,9 @@ def shell_to_py(argv):
     py4 = _scraps_.py_dedent(py4, ifline="if args.k:", as_truthy=args.k)
     py4 = _scraps_.py_dedent(py4, ifline="if args.v:", as_truthy=args.v)
     py4 = _scraps_.py_dedent(py4, ifline="if not args.v:", as_truthy=(not args.v))
+    py4 = _scraps_.py_dedent(py4, ifline="if args.patterns:", as_truthy=args.patterns)
+    py4 = _scraps_.py_dedent(py4, ifline="if args.O:", as_truthy=args.O)
+    py4 = _scraps_.py_dedent(py4, ifline="if not args.O:", as_truthy=(not args.O))
     assert py4 != py3, stderr_print(_scraps_.unified_diff_chars(a=py3, b=py4))
 
     # Expand it once more, if needed to surface the imports of the bottom level
@@ -239,6 +265,9 @@ def shell_to_py(argv):
     py5 = _scraps_.py_dedent(py5, ifline="if args.k:", as_truthy=args.k)
     py5 = _scraps_.py_dedent(py5, ifline="if args.v:", as_truthy=args.v)
     py5 = _scraps_.py_dedent(py5, ifline="if not args.v:", as_truthy=(not args.v))
+    py5 = _scraps_.py_dedent(py5, ifline="if args.patterns:", as_truthy=args.patterns)
+    py5 = _scraps_.py_dedent(py5, ifline="if args.O:", as_truthy=args.O)
+    py5 = _scraps_.py_dedent(py5, ifline="if not args.O:", as_truthy=(not args.O))
     py5 = str_replace_common_special(py5)
 
     # Form it one last time, to show no more need to expand it
@@ -249,6 +278,9 @@ def shell_to_py(argv):
     py6 = _scraps_.py_dedent(py6, ifline="if args.k:", as_truthy=args.k)
     py6 = _scraps_.py_dedent(py6, ifline="if args.v:", as_truthy=args.v)
     py6 = _scraps_.py_dedent(py6, ifline="if not args.v:", as_truthy=(not args.v))
+    py6 = _scraps_.py_dedent(py6, ifline="if args.patterns:", as_truthy=args.patterns)
+    py6 = _scraps_.py_dedent(py6, ifline="if args.O:", as_truthy=args.O)
+    py6 = _scraps_.py_dedent(py6, ifline="if not args.O:", as_truthy=(not args.O))
     py6 = str_replace_common_special(py6)
     assert py6 == py5, stderr_print(_scraps_.unified_diff_chars(a=py5, b=py6))
 
@@ -260,6 +292,9 @@ def shell_to_py(argv):
 def tar_list(filepath, args):
     """List tarred files, a la 'tar tvf'"""
 
+    if args.patterns:
+        fnmatches = tar_fnmatches_enter(patterns=args.patterns)
+
     # Visit each Dir or File
 
     top = os.path.realpath(os.getcwd())
@@ -269,7 +304,13 @@ def tar_list(filepath, args):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to visit above Top
+            # Skip the Dir or File if not at or below Pattern
+
+            if args.patterns:
+                if not tar_fnmatches_find_name(fnmatches):
+                    continue
+
+            # Skip the Dir or File if not at or below Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -287,6 +328,10 @@ def tar_list(filepath, args):
 
             if args.v:
                 print(tar_member_details(member))
+
+    if args.patterns:
+        if tar_fnmatches_exit(fnmatches):
+            sys.exit(1)
 
 
 def tar_member_details(member):
@@ -316,7 +361,10 @@ def tar_extract(filepath, args):
     """Extract tarred files, a la 'tar xvkf'"""
 
     if args.k:
-        exists = 0
+        exists = list()
+
+    if args.patterns:
+        fnmatches = tar_fnmatches_enter(patterns=args.patterns)
 
     # Walk to each file or dir found inside
 
@@ -327,7 +375,13 @@ def tar_extract(filepath, args):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to visit above Top
+            # Skip the Dir or File if not at or below Pattern
+
+            if args.patterns:
+                if not tar_fnmatches_find_name(fnmatches, name):
+                    continue
+
+            # Skip the Dir or File if not at or below Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -360,25 +414,74 @@ def tar_extract(filepath, args):
                         stderr_print(
                             "tar.py: {}: Cannot open: File exists".format(name)
                         )
-                        exists += 1
+                        exists.append(name)
 
                         continue
 
-                # Write the bytes of the Member as a separate File
+                # Fetch the bytes of the Member
 
                 member_bytes = incoming.read()
                 member_size = len(member_bytes)
                 assert member_size == member.size, (member_size, member.size)
 
-                with open(outpath, "wb") as outgoing:
-                    outgoing.write(member_bytes)
+                # Write the bytes as a separate File
 
-                # TODO: also extract the perms, stamp, and owns
+                if not args.O:
+                    with open(outpath, "wb") as outgoing:
+                        outgoing.write(member_bytes)
+
+                # Write the bytes to Stdout
+
+                if args.O:
+                    sys.stdout.write(member_bytes)
+
+                # : also extract the Perms and Stamp, but not so much the Owns
 
     if args.k:
         if exists:
             stderr_print("tar: Exiting with failure status due to previous errors")
             sys.exit(2)
+
+    if args.patterns:
+        if tar_fnmatches_exit(fnmatches):
+            sys.exit(1)
+
+
+def tar_fnmatches_enter(fnmatches, patterns):
+    """Starting counting fnmatch'es"""
+
+    fnmatches = dict()
+    for pat in patterns:
+        fnmatches[pat] = 0
+
+    return fnmatches
+
+
+def tar_fnmatches_find_name(fnmatches, name):
+    """Count fnmatch'es found, if any"""
+
+    count = 0
+    for pat in fnmatches.keys():
+        if fnmatch.fnmatchcase(name, pat=pat):
+            fnmatches[pat] += 1
+
+            count += 1
+
+    return count
+
+
+def tar_fnmatches_exit(fnmatches):
+    """Count each Pattern not found, and trace it too"""
+
+    count = 0
+    for (pat, hits) in fnmatches.items():
+        if not hits:
+            stderr_print("tar: {}: Not found in archive".format(pat))
+            count += 1
+
+            # Mac and Linux rstrip 1 or all of the trailing '/' slashes in a Pattern
+
+    return count
 
 
 # deffed in many files  # missing from docs.python.org

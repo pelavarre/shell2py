@@ -344,7 +344,7 @@ def tar_list(filepath):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to visit above Top
+            # Skip the Dir or File if not at or below Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -401,7 +401,7 @@ import tarfile
 def tar_extract(filepath):
     """Extract tarred files, a la 'tar xvkf'"""
 
-    exists = 0
+    exists = list()
 
     # Walk to each file or dir found inside
 
@@ -412,7 +412,7 @@ def tar_extract(filepath):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to visit above Top
+            # Skip the Dir or File if not at or below Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -442,20 +442,22 @@ def tar_extract(filepath):
                     stderr_print(
                         "tar.py: {}: Cannot open: File exists".format(name)
                     )
-                    exists += 1
+                    exists.append(name)
 
                     continue
 
-                # Write the bytes of the Member as a separate File
+                # Fetch the bytes of the Member
 
                 member_bytes = incoming.read()
                 member_size = len(member_bytes)
                 assert member_size == member.size, (member_size, member.size)
 
+                # Write the bytes as a separate File
+
                 with open(outpath, "wb") as outgoing:
                     outgoing.write(member_bytes)
 
-                # TODO: also extract the perms, stamp, and owns
+                # : also extract the Perms and Stamp, but not so much the Owns
 
     if exists:
         stderr_print("tar: Exiting with failure status due to previous errors")
@@ -518,7 +520,7 @@ def tar_extract(filepath):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to visit above Top
+            # Skip the Dir or File if not at or below Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -542,16 +544,18 @@ def tar_extract(filepath):
 
             with untarring.extractfile(name) as incoming:
 
-                # Write the bytes of the Member as a separate File
+                # Fetch the bytes of the Member
 
                 member_bytes = incoming.read()
                 member_size = len(member_bytes)
                 assert member_size == member.size, (member_size, member.size)
 
+                # Write the bytes as a separate File
+
                 with open(outpath, "wb") as outgoing:
                     outgoing.write(member_bytes)
 
-                # TODO: also extract the perms, stamp, and owns
+                # : also extract the Perms and Stamp, but not so much the Owns
 
 
 # deffed in many files  # missing from docs.python.org
@@ -595,7 +599,7 @@ def tar_list(filepath):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to visit above Top
+            # Skip the Dir or File if not at or below Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -630,7 +634,7 @@ import tarfile
 def tar_extract(filepath):
     """Extract tarred files, a la 'tar xkf'"""
 
-    exists = 0
+    exists = list()
 
     # Walk to each file or dir found inside
 
@@ -641,7 +645,7 @@ def tar_extract(filepath):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to visit above Top
+            # Skip the Dir or File if not at or below Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -668,20 +672,22 @@ def tar_extract(filepath):
                     stderr_print(
                         "tar.py: {}: Cannot open: File exists".format(name)
                     )
-                    exists += 1
+                    exists.append(name)
 
                     continue
 
-                # Write the bytes of the Member as a separate File
+                # Fetch the bytes of the Member
 
                 member_bytes = incoming.read()
                 member_size = len(member_bytes)
                 assert member_size == member.size, (member_size, member.size)
 
+                # Write the bytes as a separate File
+
                 with open(outpath, "wb") as outgoing:
                     outgoing.write(member_bytes)
 
-                # TODO: also extract the perms, stamp, and owns
+                # : also extract the Perms and Stamp, but not so much the Owns
 
     if exists:
         stderr_print("tar: Exiting with failure status due to previous errors")
@@ -725,7 +731,7 @@ def tar_extract(filepath):
         for name in names:
             member = untarring.getmember(name)
 
-            # Decline to visit above Top
+            # Skip the Dir or File if not at or below Top
 
             outpath = os.path.realpath(name)
             outdir = os.path.dirname(outpath)
@@ -746,16 +752,18 @@ def tar_extract(filepath):
 
             with untarring.extractfile(name) as incoming:
 
-                # Write the bytes of the Member as a separate File
+                # Fetch the bytes of the Member
 
                 member_bytes = incoming.read()
                 member_size = len(member_bytes)
                 assert member_size == member.size, (member_size, member.size)
 
+                # Write the bytes as a separate File
+
                 with open(outpath, "wb") as outgoing:
                     outgoing.write(member_bytes)
 
-                # TODO: also extract the perms, stamp, and owns
+                # : also extract the Perms and Stamp, but not so much the Owns
 
 
 tar_extract("dir.tgz")
