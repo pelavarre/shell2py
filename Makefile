@@ -15,14 +15,15 @@ default:
 	:
 	: press Control+C if you meant:  make secretly
 	:
-	rm -fr dir/ dir.tgz file p.py
+	rm -fr .dotfile .dotdir/ dir/ dir.tgz file p.py
 	time make secretly 2>&1 |sed 's,  *$$,,' >make.log
 	git diff make.log
 
 
 # run like default 'make', but stop at first fault, allow breakpoints, etc
 secretly: py black flake8 go gitadds banner
-	rm -fr dir/ dir.tgz file p.py
+	rm -fr .dotfile .dotdir/ dir/ dir.tgz file p.py
+	rm -fr bin/__pycache__/
 
 
 # invite people to delete the 'exit 3' line and come edit this code with us
@@ -122,28 +123,40 @@ go_echo:
 
 
 # test how Find shows a Top Dir of Dirs, and the Files and Dirs it contains
-go_find:
-	:
+go_find: .dotdir-and-dir
 	:
 	$V find -maxdepth 1 -type d
 	bin/find.py -maxdepth 1 -type d |grep i
 	:
 	$V find -name '.?*'
 	bin/find.py -name '.?*' >file
-	head -3 file
+	head -10 file
 	:
 	$V find -name '.?*' -prune -o -print
 	bin/find.py -name '.?*' -prune -o -print >file
-	head -3 file
+	head -10 file
 	:
 	$V find -type d
 	bin/find.py -type d >file
-	head -3 file
+	head -10 file
 	:
 	$V find -name '.?*' -prune -o -type d -print
 	bin/find.py -name '.?*' -prune -o -type d -print >file
-	head -3 file
+	head -10 file
 	:
+
+
+.dotdir-and-dir:
+	:
+	:
+	rm -fr dotdir/ dir/
+	:
+	mkdir -p .dotdir/
+	touch .dotdir/.dotdir-dotchild
+	touch .dotdir/dotdir-child
+	mkdir -p dir/
+	touch dir/.dir-dotchild
+	touch dir/dir-child
 
 
 # demo Python freaking over 'signal.SIGPIPE' not caught between 'exec' and 'print'

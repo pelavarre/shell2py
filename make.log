@@ -158,6 +158,15 @@ bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
 0000002b
 :
 :
+rm -fr dotdir/ dir/
+:
+mkdir -p .dotdir/
+touch .dotdir/.dotdir-dotchild
+touch .dotdir/dotdir-child
+mkdir -p dir/
+touch dir/.dir-dotchild
+touch dir/dir-child
+:
 shell2py find -maxdepth 1 -type d
 import os
 
@@ -166,21 +175,22 @@ def find(top):
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
-        depth = 1 + dirpath.count(os.sep)
 
+        depth = 1 + dirpath.count(os.sep)
         if depth > 1:
             continue
 
+        dirnames[:] = sorted(dirnames)
         for dirname in dirnames:
             found_dir = os.path.join(dirpath, dirname)
-
             print(found_dir)
-
 
 find(top=".")
 bin/find.py -maxdepth 1 -type d |grep i
-./bin
+./.dotdir
 ./.git
+./bin
+./dir
 :
 shell2py find -name '.?*'
 import os
@@ -191,26 +201,25 @@ def find(top):
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
 
+        dirnames[:] = list(_ for _ in dirnames if _.startswith("."))
+        dirnames[:] = sorted(dirnames)
         for dirname in dirnames:
             found_dir = os.path.join(dirpath, dirname)
-            if not dirname.startswith("."):  # if Dir isn't hidden
-                continue
-
             print(found_dir)
 
+        filenames[:] = list(_ for _ in filenames if _.startswith("."))
+        filenames[:] = sorted(filenames)
         for filename in filenames:
             found_file = os.path.join(dirpath, filename)
-            if not filename.startswith("."):  # if File isn't hidden
-                continue
-
             print(found_file)
 
 find(top=".")
 bin/find.py -name '.?*' >file
-head -3 file
+head -10 file
 .
+./.dotdir
 ./.git
-./.touched-for-test
+./.dotdir/.dotdir-dotchild
 :
 shell2py find -name '.?*' -prune -o -print
 import os
@@ -221,26 +230,31 @@ def find(top):
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
 
+        dirnames[:] = list(_ for _ in dirnames if not _.startswith("."))
+        dirnames[:] = sorted(dirnames)
         for dirname in dirnames:
             found_dir = os.path.join(dirpath, dirname)
-            if dirname.startswith("."):  # if Dir is hidden
-                continue
-
             print(found_dir)
 
+        filenames[:] = list(_ for _ in filenames if not _.startswith("."))
+        filenames[:] = sorted(filenames)
         for filename in filenames:
             found_file = os.path.join(dirpath, filename)
-            if filename.startswith("."):  # if File is hidden
-                continue
-
             print(found_file)
 
 find(top=".")
 bin/find.py -name '.?*' -prune -o -print >file
-head -3 file
+head -10 file
 .
 ./bin
+./dir
+./Makefile
+./README.md
 ./file
+./make.log
+./bin/__pycache__
+./bin/_scraps_.py
+./bin/echo.py
 :
 shell2py find -type d
 import os
@@ -251,18 +265,24 @@ def find(top):
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
 
+        dirnames[:] = sorted(dirnames)
         for dirname in dirnames:
             found_dir = os.path.join(dirpath, dirname)
-
             print(found_dir)
-
 
 find(top=".")
 bin/find.py -type d >file
-head -3 file
+head -10 file
 .
-./bin
+./.dotdir
 ./.git
+./bin
+./dir
+./.git/hooks
+./.git/info
+./.git/logs
+./.git/objects
+./.git/refs
 :
 shell2py find -name '.?*' -prune -o -type d -print
 import os
@@ -273,19 +293,18 @@ def find(top):
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
 
+        dirnames[:] = list(_ for _ in dirnames if not _.startswith("."))
+        dirnames[:] = sorted(dirnames)
         for dirname in dirnames:
             found_dir = os.path.join(dirpath, dirname)
-            if dirname.startswith("."):  # if Dir is hidden
-                continue
-
             print(found_dir)
-
 
 find(top=".")
 bin/find.py -name '.?*' -prune -o -type d -print >file
-head -3 file
+head -10 file
 .
 ./bin
+./dir
 ./bin/__pycache__
 :
 :
@@ -910,7 +929,6 @@ rm -fr dir/ dir.tgz p.py
 :
 :
 git ls-files
-.touched-for-test
 Makefile
 README.md
 bin/_scraps_.py
@@ -926,4 +944,5 @@ git status --short --ignored |grep -v '^ M ' |(grep '[.]py$' || :)
 :
 :
 : copied by: git clone https://github.com/pelavarre/shell2py.git
-rm -fr dir/ dir.tgz file p.py
+rm -fr .dotfile .dotdir/ dir/ dir.tgz file p.py
+rm -fr bin/__pycache__/

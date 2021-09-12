@@ -27,12 +27,12 @@ quirks:
   our code misunderstands:  find . -type d -name '.?*' -prune -o -print
 
 examples:
-  find -maxdepth 1 -type d  # dirs inside this dir, but not their children
-  find -name '.?*'  # dirs and files inside, but only hidden ones
-  find -name '.?*' -prune -o -print  # dirs and files inside, but not hidden ones
-  find -type d  # all the dirs of dirs here
-  find -not -type d  # all the files, none of the dirs
-  find -type d -name '.?*' -prune -o -print  # like 'find -type d' but no hidden ones
+  find . -maxdepth 1 -type d  # dirs inside this dir, but not their children
+  find . -name '.?*'  # dirs and files inside, but only hidden ones
+  find . -name '.?*' -prune -o -print  # dirs and files inside, but not hidden ones
+  find . -type d  # all the dirs of dirs here
+  find . -not -type d  # all the files, none of the dirs
+  find . -type d -name '.?*' -prune -o -print  # like 'find -type d' but no hidden ones
 """
 
 # TODO: -newer, -size
@@ -128,6 +128,9 @@ def shell_to_py(argv):
 
     # Reject obvious contradictions
 
+    if args.name and args.name != ".?*":
+        return
+
     if args.type and args.type != "d":
         return
 
@@ -177,45 +180,41 @@ def shell_to_py(argv):
 
             print(top)
             for (dirpath, dirnames, filenames) in os.walk(top):
+
 #if DROP_DEEPER
                 depth = 1 + dirpath.count(os.sep)
-
                 if depth > $MAXDEPTH:
                     continue
-#endif
 
+#endif
 #if DROP_DIRS
 #else
+  #if DROP_HIDDEN
+                dirnames[:] = list(_ for _ in dirnames if not _.startswith("."))
+  #endif
+  #if TAKE_HIDDEN
+                dirnames[:] = list(_ for _ in dirnames if _.startswith("."))
+  #endif
+                dirnames[:] = sorted(dirnames)
                 for dirname in dirnames:
                     found_dir = os.path.join(dirpath, dirname)
-  #if DROP_HIDDEN
-                    if dirname.startswith("."):  # if Dir is hidden
-                        continue
-  #endif
-  #if TAKE_HIDDEN
-                    if not dirname.startswith("."):  # if Dir isn't hidden
-                        continue
-  #endif
-
                     print(found_dir)
-#endif
 
+#endif
 #if DROP_FILES
 #else
-                for filename in filenames:
-                    found_file = os.path.join(dirpath, filename)
   #if DROP_HIDDEN
-                    if filename.startswith("."):  # if File is hidden
-                        continue
+                filenames[:] = list(_ for _ in filenames if not _.startswith("."))
   #endif
   #if TAKE_HIDDEN
-                    if not filename.startswith("."):  # if File isn't hidden
-                        continue
+                filenames[:] = list(_ for _ in filenames if _.startswith("."))
   #endif
-
+                filenames[:] = sorted(filenames)
+                for filename in filenames:
+                    found_file = os.path.join(dirpath, filename)
                     print(found_file)
-#endif
 
+#endif
         find(top=$TOP)
 
         '''
