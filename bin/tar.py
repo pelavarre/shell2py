@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 """
-usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [--dict] [PATTERN ...]
+usage: tar.py [-h] [-t] [-x] [-c] [-v] [-k] [-f FILE] [-O] [--dict]
+              [PATTERN ...]
 
 walk the files and dirs found inside a top dir compressed as Tgz
 
@@ -10,9 +11,10 @@ positional arguments:
 
 optional arguments:
   -h, --help  show this help message and exit
-  -t          dry run:  list each dir or file at Stdout, but do Not extract them
+  -t          dry run: list each dir or file at Stdout, but do Not extract them
   -x          write out a copy of each file, back to where it came from
-  -v          say more:  add details to '-t', or list each dir or file when extracted
+  -c          compress: take the so-called PATTERN's as FILE's and DIR's to read
+  -v          say more: add details to '-t', or list each dir or file when extracted
   -k          stop extract from replacing files created before now
   -f FILE     name the file to uncompress
   -O          extract to Stdout, not to where the files came from
@@ -62,8 +64,9 @@ def main():
 
     _scraps_.exec_shell_to_py(name=__name__)
 
-    if main.args.dict:
-        BYTES_BY_NAME.update(_scraps_.BYTES_BY_NAME)
+    if hasattr(main, "args"):
+        if main.args.dict:
+            BYTES_BY_NAME.update(_scraps_.BYTES_BY_NAME)
 
 
 def parse_tar_args(argv):
@@ -87,7 +90,7 @@ def parse_tar_args(argv):
         "-t",
         action="count",
         default=0,
-        help="dry run:  list each dir or file at Stdout, but do Not extract them",
+        help="dry run: list each dir or file at Stdout, but do Not extract them",
     )
 
     parser.add_argument(
@@ -98,10 +101,17 @@ def parse_tar_args(argv):
     )
 
     parser.add_argument(
+        "-c",
+        action="count",
+        default=0,
+        help="compress: take the so-called PATTERN's as FILE's and DIR's to read",
+    )
+
+    parser.add_argument(
         "-v",
         action="count",
         default=0,
-        help="say more:  add details to '-t', or list each dir or file when extracted",
+        help="say more: add details to '-t', or list each dir or file when extracted",
     )
 
     parser.add_argument(
@@ -141,6 +151,27 @@ def parse_tar_args(argv):
 
 def shell_to_py(argv):
 
+    # Intercept '-h', '--h', '--he', ... '--help' as first arg,
+    # before requiring all args declared
+
+    _scraps_.parse_left_help_args(argv, doc=__doc__)
+
+    # Intercept '-c' inside first arg, if first arg is not a '--...' arg
+
+    if argv[1:]:
+        argv1 = argv[1]
+        if not argv1.startswith("--"):
+            if "c" in argv1:
+
+                altv = list(argv)
+                altv[0] = "tar"
+
+                py = _scraps_.main_argv_to_py(altv)
+
+                return py
+
+    # Else fallback to parse the command line as per top-of-file Docstring
+
     args = parse_tar_args(argv)
     main.args = args
 
@@ -162,17 +193,31 @@ def shell_to_py(argv):
     # Reject obvious contradictions  # FIXME: log explanations a la ArgParse Exclusive
 
     if args.t and args.x:
-        return
+        stderr_print("tar.py: error: arguments -t -x: choose one, not both")
+        sys.exit(2)
     if (not args.t) and (not args.x):
-        return
+        stderr_print("tar.py: error: arguments -t -x: choose one, not neither")
+        sys.exit(2)
+
+    if not args.x:
+        for argname in "dict k O".split():
+            if vars(args)[argname]:
+                stderr_print(
+                    "tar.py: error: argument {}: add -x if you mean it".format(argname)
+                )
+                sys.exit(2)
 
     if (args.dict or args.k or args.O) and not args.x:
-        return
+        stderr_print("tar.py: error: argument -f FILE required")
+        sys.exit(2)
+
     if args.dict and args.O:
-        return
+        stderr_print("tar.py: error: arguments --dict -O: choose one, not both")
+        sys.exit(2)
 
     if not args.f:
-        return
+        stderr_print("tar.py: error: argument -f FILE required")
+        sys.exit(2)
 
     # Style the Shell line of the Python
 

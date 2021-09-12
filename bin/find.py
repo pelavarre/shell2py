@@ -37,6 +37,8 @@ examples:
 
 # TODO: -newer, -size
 
+import sys
+
 import _scraps_
 
 
@@ -50,7 +52,7 @@ def parse_find_args(argv):
     as_argv = list(argv)
     for (index, arg) in enumerate(as_argv):
         if arg.startswith("-") and not arg.startswith("--"):
-            as_argv[index] = "-" + arg
+            as_argv[index] = "-" + arg  # change to "--" from "-"
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
 
@@ -124,11 +126,22 @@ def shell_to_py(argv):
 
     # Reject obvious contradictions
 
-    if args.name and args.name != ".?*":
-        return
+    if args.name and (args.name != ".?*"):
+        sys.stderr.write(
+            "find.py: error: argument -name {}: choose {!r}\n".format(
+                _scraps_.shlex_quote(args.name), _scraps_.shlex_quote(".?*")
+            )
+        )
 
-    if args.type and args.type != "d":
-        return
+        sys.exit(2)
+
+    if args.type and (args.type != "d"):
+        sys.stderr.write(
+            "find.py: error: argument -type {}: choose d\n".format(
+                _scraps_.shlex_quote(args.name)
+            )
+        )
+        sys.exit(2)
 
     drop_deeper = args.maxdepth
     drop_dirs = args.type and args_not
@@ -139,13 +152,20 @@ def shell_to_py(argv):
     assert not (drop_dirs and drop_files)
     assert not (drop_hidden and take_hidden)
 
-    if args_not:
-        if not drop_dirs:
-            return
+    if not drop_dirs:
+        if args_not:
+            sys.stderr.write("find.py: error: argument -not {}: choose -not -type d\n")
+            sys.exit(2)
 
-    if args.prune or args.o or args_print:
-        if not drop_hidden:
-            return
+    if not drop_hidden:
+        for argname in "prune o print".split():
+            if vars(args)[argname]:
+                sys.stderr.write(
+                    "find.py: error: argument -{}: choose -prune -o -print".format(
+                        argname
+                    )
+                )
+                sys.exit(2)
 
     # Style the Shell line of the Python
 

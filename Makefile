@@ -200,7 +200,7 @@ dir.tgz:
 	mkdir -p dir/a/b/c dir/p/q/r
 	echo hello >dir/a/b/d
 	echo goodbye > dir/a/b/e
-	tar czf dir.tgz dir/
+	bin/tar.py czf dir.tgz dir/
 
 
 # test how Tar walks the Files and Dirs found inside a Top Dir compressed as Tgz
