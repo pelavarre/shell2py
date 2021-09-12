@@ -15,14 +15,14 @@ default:
 	:
 	: press Control+C if you meant:  make secretly
 	:
-	rm -fr file dir/ dir.tgz
+	rm -fr dir/ dir.tgz file p.py
 	time make secretly 2>&1 |sed 's,  *$$,,' >make.log
 	git diff make.log
 
 
 # run like default 'make', but stop at first fault, allow breakpoints, etc
 secretly: py black flake8 go gitadds banner
-	rm -fr file dir/ dir.tgz
+	rm -fr dir/ dir.tgz file p.py
 
 
 # invite people to delete the 'exit 3' line and come edit this code with us
@@ -95,7 +95,7 @@ go_shell2py:
 	$V --help
 
 
-# test how Ls shows the files and dirs inside a dir
+# test how Ls shows the Files and Dirs inside a Dir
 go_ls:
 	:
 	:
@@ -121,7 +121,7 @@ go_echo:
 	bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
 
 
-# test how Find shows a top dir of dirs, and the files and dirs it contains
+# test how Find shows a Top Dir of Dirs, and the Files and Dirs it contains
 go_find:
 	:
 	:
@@ -171,8 +171,15 @@ go_tac:
 	:
 
 
-# test how Tar walks the files and dirs found inside a top dir compressed as Tgz
-go_tar:
+# test how Tar walks and how Tar picks
+go_tar: go_tar_walk go_tar_pick
+	:
+	:
+	rm -fr dir/ dir.tgz p.py
+
+
+
+dir.tgz:
 	:
 	:
 	rm -fr dir/ dir.tgz
@@ -181,6 +188,11 @@ go_tar:
 	echo hello >dir/a/b/d
 	echo goodbye > dir/a/b/e
 	tar czf dir.tgz dir/
+
+
+# test how Tar walks the Files and Dirs found inside a Top Dir compressed as Tgz
+go_tar_walk: dir.tgz
+
 	:
 	:
 	$V tar tvf dir.tgz
@@ -205,11 +217,24 @@ go_tar:
 	:
 	$V tar xf dir.tgz
 	bin/tar.py xf dir.tgz
+
+
+# test how Tar picks out some Dirs and Files
+go_tar_pick: dir.tgz
 	:
 	:
-	rm -fr dir/ dir.tgz
+	rm -fr p.py
 	:
-	: "TODO: test 'tar tf' and 'tar xf' without 'v'"
+	$V tar tf dir.tgz dir/a
+	bin/tar.py tf dir.tgz dir/a
+	:
+	$V tar tf dir.tgz dir dir/a// dir >p.py
+	tail -2 p.py
+	bin/tar.py tf dir.tgz dir dir/a/b/d/// dir
+	:
+	$V tar xf dir.tgz -O 'dir/a/*/?' >p.py
+	tail -2 p.py
+	bin/tar.py xf dir.tgz -O 'dir/a/*/?'
 
 
 # mention files wrongly added by accident, and Py files wrongly Not added by accident

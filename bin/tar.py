@@ -22,7 +22,9 @@ quirks:
   takes '-k' as meaning don't replace files created before now - like Linux, unlike Mac
   traces '-tv' dirs and files like Linux "u/g s y-m-D", not like Mac "u g s m d"
   traces '-x' dirs and files in Linux "f" format, not Mac "x f" format
-  exits 1 if any pattern matches no names - like Mac, vs Linux exiting 2 and more often
+  exits 1 if file is empty - like Linux exits 2, unlike Mac silently exits zero
+  exits 1 if any pattern matches no names - like Mac, vs Linux exits 2 and more often
+  exits 2 if pattern is empty - like Mac, vs Linux silently exits zero
 
 Bash script to compress a top dir as Tgz for test:
   rm -fr dir/ dir.tgz
@@ -34,8 +36,9 @@ Bash script to compress a top dir as Tgz for test:
 examples:
   tar tvf dir.tgz  # show what's inside
   tar xvkf dir.tgz  # copy out what's inside
-  tar tvf dir.tgz dir/a  # show just some of what's inside
-  tar.py tvf dir.tgz dir dir/a// dir  # accept redundancy in every order, like Mac
+  tar tf dir.tgz dir/a  # show just some of what's inside
+  tar.py tf dir.tgz dir dir/a/b/d/// dir  # match repeatedly, & dirs w files, like Mac
+  tar xf dir.tgz -O 'dir/a/*/?'  # accept quoted '?' and '*' patterns, like Linux & Mac
 """
 
 # TODO: solve FILE "-" means Stdin
@@ -70,7 +73,7 @@ def parse_tar_args(argv):
     parser.add_argument(
         "patterns",
         metavar="PATTERN",
-        nargs="*",
+        nargs="...",
         help="list or extract only the files or dirs at or below pattern",
     )
 
@@ -117,10 +120,18 @@ def parse_tar_args(argv):
     )
 
     got_usage = parser.format_usage()
-    assert (
-        got_usage
-        == "usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN ...]\n"
-    ), got_usage
+
+    if False:
+        assert (
+            got_usage
+            == "usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN ...]\n"
+        ), got_usage
+
+    if True:
+        assert (
+            got_usage == "usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] ...\n"
+        ), got_usage
+
     parser.usage = (
         "tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN [PATTERN ...]]"
     )
@@ -136,7 +147,20 @@ def shell_to_py(argv):
 
     args = parse_tar_args(argv)
 
-    patterns = args.patterns
+    # Shrug off the trailing 'os.sep's of each pattern, if they exist,
+    # but do require a not-empty pattern
+
+    patterns = list()
+    for pat in args.patterns:
+
+        if not pat:
+            stderr_print("tar: Error inclusion pattern: pattern is empty")
+            sys.exit(2)
+
+        rstripped = pat.rstrip(os.sep)
+        rstripped = rstripped if rstripped else os.sep
+
+        patterns.append(rstripped)
 
     # Reject obvious contradictions
 
@@ -166,19 +190,18 @@ def shell_to_py(argv):
             for pattern in patterns:
                 shline += " " + _scraps_.shlex_quote(pattern)
 
-    # Stub out what doesn't work yet
-
-    if patterns or args.O:
-        raise NotImplementedError()
-
     # Calculate edits required
     # TODO: Less explicit deletes of comments before the deletes of code
 
     commons = list()
     specials = list()
 
-    commons.append(", args):")
-    specials.append("):")
+    commons.append(", args")
+    specials.append("")
+
+    if not patterns:
+        commons.append(", patterns")
+        specials.append("")
 
     commons.append("tar xvkf" if args.x else "tar tvf")
     specials.append(shline)
@@ -206,7 +229,7 @@ def shell_to_py(argv):
             "                # Write the bytes to Stdout\n\n",
         )
         specials.append("")
-    if not args.patterns:
+    if not patterns:
         commons.append(
             "            # Skip the Dir or File if not at or below Pattern\n\n",
         )
@@ -222,7 +245,11 @@ def shell_to_py(argv):
 
     rep_file_path = _scraps_.as_py_value(args.f)
     main_func_name = "tar_extract" if args.x else "tar_list"
+
     py1 = "{}({})".format(main_func_name, rep_file_path)
+    if patterns:
+        rep_patterns = _scraps_.as_py_value(patterns)
+        py1 = "{}({}, patterns={})".format(main_func_name, rep_file_path, rep_patterns)
 
     # Add its Import's and Func's, delete its Dead Code
 
@@ -251,10 +278,12 @@ def tar_edit_py(py, args, module_py, commons, specials):
 
             got_yes = vars(args)[argname]
             if_yes_line = "if args.{}:".format(argname)
+            if_yes_line = if_yes_line.replace("args.patterns", "patterns")
             py1 = _scraps_.py_dedent(py1, ifline=if_yes_line, as_truthy=got_yes)
 
             got_no = not got_yes
             if_no_line = "if not args.{}:".format(argname)
+            if_no_line = if_no_line.replace("args.patterns", "patterns")
             py1 = _scraps_.py_dedent(py1, ifline=if_no_line, as_truthy=got_no)
 
         for (common, special) in zip(commons, specials):
@@ -269,11 +298,11 @@ def tar_edit_py(py, args, module_py, commons, specials):
         py0 = py1
 
 
-def tar_list(filepath, args):
+def tar_list(filepath, patterns, args):
     """List tarred files, a la 'tar tvf'"""
 
-    if args.patterns:
-        fnmatches = tar_fnmatches_enter(patterns=args.patterns)
+    if patterns:
+        fnmatches = tar_fnmatches_enter(patterns)
 
     # Visit each Dir or File
 
@@ -286,8 +315,8 @@ def tar_list(filepath, args):
 
             # Skip the Dir or File if not at or below Pattern
 
-            if args.patterns:
-                if not tar_fnmatches_find_name(fnmatches):
+            if patterns:
+                if not tar_fnmatches_find_name(fnmatches, name=name):
                     continue
 
             # Skip the Dir or File if not at or below Top
@@ -309,7 +338,7 @@ def tar_list(filepath, args):
             if args.v:
                 print(tar_member_details(member))
 
-    if args.patterns:
+    if patterns:
         if tar_fnmatches_exit(fnmatches):
             sys.exit(1)
 
@@ -337,14 +366,14 @@ def tar_member_details(member):
     return line
 
 
-def tar_extract(filepath, args):
+def tar_extract(filepath, patterns, args):
     """Extract tarred files, a la 'tar xvkf'"""
 
     if args.k:
         exists = list()
 
-    if args.patterns:
-        fnmatches = tar_fnmatches_enter(patterns=args.patterns)
+    if patterns:
+        fnmatches = tar_fnmatches_enter(patterns)
 
     # Walk to each file or dir found inside
 
@@ -357,8 +386,8 @@ def tar_extract(filepath, args):
 
             # Skip the Dir or File if not at or below Pattern
 
-            if args.patterns:
-                if not tar_fnmatches_find_name(fnmatches, name):
+            if patterns:
+                if not tar_fnmatches_find_name(fnmatches, name=name):
                     continue
 
             # Skip the Dir or File if not at or below Top
@@ -413,7 +442,8 @@ def tar_extract(filepath, args):
                 # Write the bytes to Stdout
 
                 if args.O:
-                    sys.stdout.write(member_bytes)
+                    with open("/dev/stdout", "wb") as outgoing:
+                        outgoing.write(member_bytes)
 
                 # : also extract the Perms and Stamp, but not so much the Owns
 
@@ -422,12 +452,12 @@ def tar_extract(filepath, args):
             stderr_print("tar: Exiting with failure status due to previous errors")
             sys.exit(2)
 
-    if args.patterns:
+    if patterns:
         if tar_fnmatches_exit(fnmatches):
             sys.exit(1)
 
 
-def tar_fnmatches_enter(fnmatches, patterns):
+def tar_fnmatches_enter(patterns):
     """Starting counting fnmatch'es"""
 
     fnmatches = dict()
@@ -442,7 +472,16 @@ def tar_fnmatches_find_name(fnmatches, name):
 
     count = 0
     for pat in fnmatches.keys():
-        if fnmatch.fnmatchcase(name, pat=pat):
+
+        at_or_below_pat = False
+        name_or_above = name
+        while name_or_above:
+            if fnmatch.fnmatchcase(name_or_above, pat=pat):
+                at_or_below_pat = True
+                break
+            name_or_above = os.path.dirname(name_or_above)
+
+        if at_or_below_pat:
             fnmatches[pat] += 1
 
             count += 1

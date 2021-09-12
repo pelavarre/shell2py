@@ -770,9 +770,141 @@ tar_extract("dir.tgz")
 bin/tar.py xf dir.tgz
 :
 :
-rm -fr dir/ dir.tgz
+rm -fr p.py
 :
-: "TODO: test 'tar tf' and 'tar xf' without 'v'"
+shell2py tar tf dir.tgz dir/a
+import fnmatch
+import os
+import sys
+import tarfile
+
+
+def tar_list(filepath, patterns):
+    """List tarred files, a la 'tar -tf dir/a'"""
+
+    fnmatches = tar_fnmatches_enter(patterns)
+
+    # Visit each Dir or File
+
+    top = os.path.realpath(os.getcwd())
+    with tarfile.open(filepath) as untarring:  # instance of 'tarfile.TarFile'
+        names = untarring.getnames()
+
+        for name in names:
+            member = untarring.getmember(name)
+
+            # Skip the Dir or File if not at or below Pattern
+
+            if not tar_fnmatches_find_name(fnmatches, name=name):
+                continue
+
+            # Skip the Dir or File if not at or below Top
+
+            outpath = os.path.realpath(name)
+            outdir = os.path.dirname(outpath)
+
+            if top != outdir:
+                assert outdir.startswith(top + os.sep), (outdir, top)
+
+            if member.isdir():
+                print(name + os.sep)
+            else:
+                print(name)
+
+    if tar_fnmatches_exit(fnmatches):
+        sys.exit(1)
+
+
+def tar_fnmatches_enter(patterns):
+    """Starting counting fnmatch'es"""
+
+    fnmatches = dict()
+    for pat in patterns:
+        fnmatches[pat] = 0
+
+    return fnmatches
+
+
+def tar_fnmatches_find_name(fnmatches, name):
+    """Count fnmatch'es found, if any"""
+
+    count = 0
+    for pat in fnmatches.keys():
+
+        at_or_below_pat = False
+        name_or_above = name
+        while name_or_above:
+            if fnmatch.fnmatchcase(name_or_above, pat=pat):
+                at_or_below_pat = True
+                break
+            name_or_above = os.path.dirname(name_or_above)
+
+        if at_or_below_pat:
+            fnmatches[pat] += 1
+
+            count += 1
+
+    return count
+
+
+def tar_fnmatches_exit(fnmatches):
+    """Count each Pattern not found, and trace it too"""
+
+    count = 0
+    for (pat, hits) in fnmatches.items():
+        if not hits:
+            stderr_print("tar: {}: Not found in archive".format(pat))
+            count += 1
+
+            # Mac and Linux rstrip 1 or all of the trailing '/' slashes in a Pattern
+
+    return count
+
+
+# deffed in many files  # missing from docs.python.org
+def stderr_print(*args, **kwargs):
+    """Like Print, but flush don't write Stdout and do write and flush Stderr"""
+
+    sys.stdout.flush()
+    print(*args, **kwargs, file=sys.stderr)
+    sys.stderr.flush()
+
+    # else caller has to "{}\n".format(...) and flush
+
+
+tar_list("dir.tgz", patterns=["dir/a"])
+bin/tar.py tf dir.tgz dir/a
+dir/a/
+dir/a/b/
+dir/a/b/c/
+dir/a/b/d
+dir/a/b/e
+:
+shell2py tar tf dir.tgz dir dir/a// dir >p.py
+tail -2 p.py
+
+tar_list("dir.tgz", patterns=["dir", "dir/a", "dir"])
+bin/tar.py tf dir.tgz dir dir/a/b/d/// dir
+dir/
+dir/a/
+dir/p/
+dir/p/q/
+dir/p/q/r/
+dir/a/b/
+dir/a/b/c/
+dir/a/b/d
+dir/a/b/e
+:
+shell2py tar xf dir.tgz -O 'dir/a/*/?' >p.py
+tail -2 p.py
+
+tar_extract("dir.tgz", patterns=["dir/a/*/?"])
+bin/tar.py xf dir.tgz -O 'dir/a/*/?'
+hello
+goodbye
+:
+:
+rm -fr dir/ dir.tgz p.py
 :
 :
 :
@@ -794,4 +926,4 @@ git status --short --ignored |grep -v '^ M ' |(grep '[.]py$' || :)
 :
 :
 : copied by: git clone https://github.com/pelavarre/shell2py.git
-rm -fr file dir/ dir.tgz
+rm -fr dir/ dir.tgz file p.py
