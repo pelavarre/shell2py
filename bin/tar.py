@@ -177,8 +177,12 @@ def shell_to_py(argv):
     commons = list()
     specials = list()
 
+    commons.append(", args):")
+    specials.append("):")
+
     commons.append("tar xvkf" if args.x else "tar tvf")
     specials.append(shline)
+
     if args.t and not args.v:
         commons.append(
             "            # Trace the walk\n\n",
@@ -208,14 +212,6 @@ def shell_to_py(argv):
         )
         specials.append("")
 
-    def str_replace_common_special(py):
-
-        edited = py
-        for (common, special) in zip(commons, specials):
-            edited = edited.replace(common, special)
-
-        return edited
-
     # Read this sourcefile
 
     module = sys.modules[__name__]
@@ -228,65 +224,49 @@ def shell_to_py(argv):
     main_func_name = "tar_extract" if args.x else "tar_list"
     py1 = "{}({})".format(main_func_name, rep_file_path)
 
-    # Expand it once
+    # Add its Import's and Func's, delete its Dead Code
 
-    py2 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
+    py2 = tar_edit_py(
+        py=py1, args=args, module_py=module_py, commons=commons, specials=specials
+    )
 
-    # Expand it to two levels, and drop/keep the source guarded by 'tar -v'
+    return py2
 
-    py3 = py2
-    py3 = py3.replace(", args):", "):")
-    py3 = _scraps_.py_dedent(py3, ifline="if args.k:", as_truthy=args.k)
-    py3 = _scraps_.py_dedent(py3, ifline="if args.v:", as_truthy=args.v)
-    py3 = _scraps_.py_dedent(py3, ifline="if not args.v:", as_truthy=(not args.v))
-    py3 = _scraps_.py_dedent(py3, ifline="if args.patterns:", as_truthy=args.patterns)
-    py3 = _scraps_.py_dedent(py3, ifline="if args.O:", as_truthy=args.O)
-    py3 = _scraps_.py_dedent(py3, ifline="if not args.O:", as_truthy=(not args.O))
 
-    # Expand it to three levels
+def tar_edit_py(py, args, module_py, commons, specials):
 
-    py4 = py3
-    py4 = _scraps_.py_pick_lines(py=py4, module_py=module_py)
-    py4 = py4.replace(", args):", "):")
-    py4 = _scraps_.py_dedent(py4, ifline="if args.k:", as_truthy=args.k)
-    py4 = _scraps_.py_dedent(py4, ifline="if args.v:", as_truthy=args.v)
-    py4 = _scraps_.py_dedent(py4, ifline="if not args.v:", as_truthy=(not args.v))
-    py4 = _scraps_.py_dedent(py4, ifline="if args.patterns:", as_truthy=args.patterns)
-    py4 = _scraps_.py_dedent(py4, ifline="if args.O:", as_truthy=args.O)
-    py4 = _scraps_.py_dedent(py4, ifline="if not args.O:", as_truthy=(not args.O))
-    assert py4 != py3, stderr_print(_scraps_.unified_diff_chars(a=py3, b=py4))
+    py0 = py
 
-    # Expand it once more, if needed to surface the imports of the bottom level
-    # and refine its Docstrings
+    count = 0
+    while True:
+        count += 1
 
-    py5 = py4
-    py5 = _scraps_.py_pick_lines(py=py5, module_py=module_py)
-    py5 = py5.replace(", args):", "):")
-    py5 = _scraps_.py_dedent(py5, ifline="if args.k:", as_truthy=args.k)
-    py5 = _scraps_.py_dedent(py5, ifline="if args.v:", as_truthy=args.v)
-    py5 = _scraps_.py_dedent(py5, ifline="if not args.v:", as_truthy=(not args.v))
-    py5 = _scraps_.py_dedent(py5, ifline="if args.patterns:", as_truthy=args.patterns)
-    py5 = _scraps_.py_dedent(py5, ifline="if args.O:", as_truthy=args.O)
-    py5 = _scraps_.py_dedent(py5, ifline="if not args.O:", as_truthy=(not args.O))
-    py5 = str_replace_common_special(py5)
+        assert count <= 4, count
 
-    # Form it one last time, to show no more need to expand it
+        py1 = py0
 
-    py6 = py5
-    py6 = _scraps_.py_pick_lines(py=py6, module_py=module_py)
-    py6 = py6.replace(", args):", "):")
-    py6 = _scraps_.py_dedent(py6, ifline="if args.k:", as_truthy=args.k)
-    py6 = _scraps_.py_dedent(py6, ifline="if args.v:", as_truthy=args.v)
-    py6 = _scraps_.py_dedent(py6, ifline="if not args.v:", as_truthy=(not args.v))
-    py6 = _scraps_.py_dedent(py6, ifline="if args.patterns:", as_truthy=args.patterns)
-    py6 = _scraps_.py_dedent(py6, ifline="if args.O:", as_truthy=args.O)
-    py6 = _scraps_.py_dedent(py6, ifline="if not args.O:", as_truthy=(not args.O))
-    py6 = str_replace_common_special(py6)
-    assert py6 == py5, stderr_print(_scraps_.unified_diff_chars(a=py5, b=py6))
+        py1 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
 
-    # Succeed
+        for argname in "v k O patterns".split():
 
-    return py6
+            got_yes = vars(args)[argname]
+            if_yes_line = "if args.{}:".format(argname)
+            py1 = _scraps_.py_dedent(py1, ifline=if_yes_line, as_truthy=got_yes)
+
+            got_no = not got_yes
+            if_no_line = "if not args.{}:".format(argname)
+            py1 = _scraps_.py_dedent(py1, ifline=if_no_line, as_truthy=got_no)
+
+        for (common, special) in zip(commons, specials):
+            py1 = py1.replace(common, special)
+
+        if py0 == py1:
+
+            assert count >= 3, count
+
+            return py0
+
+        py0 = py1
 
 
 def tar_list(filepath, args):
