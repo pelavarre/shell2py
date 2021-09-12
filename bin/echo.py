@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-usage: echo.py [-h] [-n] [--verbose] [WORD [WORD ...]]
+usage: echo.py [-h] [-n] [--verbose] [WORD ...]
 
 show some words
 
@@ -46,12 +46,8 @@ def parse_echo_args(argv):
         action="count",
         help="show each word separately, don't join them together as one line",
     )
-    parser.add_argument("words", metavar="WORD", nargs="...", help="a word to show")
+    parser.add_argument("words", metavar="WORD", nargs="*", help="a word to show")
     # TODO: distribute wise choice of 'nargs="..."' vs 'nargs="*"'
-
-    usage = parser.format_usage()
-    assert usage == "usage: echo.py [-h] [-n] [--verbose] ...\n", repr(usage)
-    parser.usage = __doc__.strip().splitlines()[0][len("usage: ") :]
 
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 

@@ -130,7 +130,7 @@ go_find: .dotdir-and-dir
 	:
 	$V find -name '.?*'
 	bin/find.py -name '.?*' >file
-	head -10 file
+	head -4 file
 	:
 	$V find -name '.?*' -prune -o -print
 	bin/find.py -name '.?*' -prune -o -print >file
@@ -179,8 +179,8 @@ sigpipe:
 go_tac:
 	:
 	:
-	$V tac
-	bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py
+	$V tac -
+	bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py -
 	:
 
 

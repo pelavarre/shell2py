@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN [PATTERN ...]]
+usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [--dict] [PATTERN ...]
 
 walk the files and dirs found inside a top dir compressed as Tgz
 
@@ -13,9 +13,10 @@ optional arguments:
   -t          dry run:  list each dir or file at Stdout, but do Not extract them
   -x          write out a copy of each file, back to where it came from
   -v          say more:  add details to '-t', or list each dir or file when extracted
-  -k          decline to replace files created before now
+  -k          stop extract from replacing files created before now
   -f FILE     name the file to uncompress
-  -O          write out a copy of each file, but to Stdout, not to where it came from
+  -O          extract to Stdout, not to where the files came from
+  --dict      extract to a Python Dict, not to where the files came from
 
 quirks:
   lets you say classic 'tvf' to mean '-tvf', classic 'xvkf' to mean '-xvkf', etc
@@ -39,6 +40,7 @@ examples:
   tar tf dir.tgz dir/a  # show just some of what's inside
   tar.py tf dir.tgz dir dir/a/b/d/// dir  # match repeatedly, & dirs w files, like Mac
   tar xf dir.tgz -O 'dir/a/*/?'  # accept quoted '?' and '*' patterns, like Linux & Mac
+  python3 -i bin/tar.py xf dir.tgz --dict 'dir/a/*/?'  # extract to a Python Dict
 """
 
 # TODO: solve FILE "-" means Stdin
@@ -53,11 +55,17 @@ import tarfile
 import _scraps_
 
 
+BYTES_BY_NAME = dict()  # collect bytes of Tgz members, for the '-x --dict' mode
+
+
 def main(argv=None):
 
     as_argv = sys.argv if (argv is None) else argv
 
     _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
+
+    if main.args.dict:
+        BYTES_BY_NAME.update(_scraps_.BYTES_BY_NAME)
 
 
 def parse_tar_args(argv):
@@ -73,7 +81,7 @@ def parse_tar_args(argv):
     parser.add_argument(
         "patterns",
         metavar="PATTERN",
-        nargs="...",
+        nargs="*",
         help="list or extract only the files or dirs at or below pattern",
     )
 
@@ -102,7 +110,7 @@ def parse_tar_args(argv):
         "-k",
         action="count",
         default=0,
-        help="decline to replace files created before now",
+        help="stop extract from replacing files created before now",
     )
 
     parser.add_argument(
@@ -116,24 +124,14 @@ def parse_tar_args(argv):
         "-O",
         action="count",
         default=0,
-        help="write out a copy of each file, but to Stdout, not to where it came from",
+        help="extract to Stdout, not to where the files came from",
     )
 
-    got_usage = parser.format_usage()
-
-    if False:
-        assert (
-            got_usage
-            == "usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN ...]\n"
-        ), got_usage
-
-    if True:
-        assert (
-            got_usage == "usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] ...\n"
-        ), got_usage
-
-    parser.usage = (
-        "tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [PATTERN [PATTERN ...]]"
+    parser.add_argument(
+        "--dict",
+        action="count",
+        default=0,
+        help="extract to a Python Dict, not to where the files came from",
     )
 
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
@@ -146,6 +144,7 @@ def parse_tar_args(argv):
 def shell_to_py(argv):
 
     args = parse_tar_args(argv)
+    main.args = args
 
     # Shrug off the trailing 'os.sep's of each pattern, if they exist,
     # but do require a not-empty pattern
@@ -162,14 +161,16 @@ def shell_to_py(argv):
 
         patterns.append(rstripped)
 
-    # Reject obvious contradictions
+    # Reject obvious contradictions  # FIXME: log explanations a la ArgParse Exclusive
 
     if args.t and args.x:
         return
     if (not args.t) and (not args.x):
         return
 
-    if (args.k or args.O) and not args.x:
+    if (args.dict or args.k or args.O) and not args.x:
+        return
+    if args.dict and args.O:
         return
 
     if not args.f:
@@ -180,12 +181,14 @@ def shell_to_py(argv):
     flags = "".join(_ for _ in "txvkf" if vars(args)[_])
 
     shline = "tar"
-    if not (args.O or patterns):
+    if not (args.dict or args.O or patterns):
         shline += " " + flags
     else:
         shline += " -" + flags
         if args.O:
             shline += " -O" + flags
+        if args.dict:
+            shline += " --dict" + flags
         if patterns:
             for pattern in patterns:
                 shline += " " + _scraps_.shlex_quote(pattern)
@@ -195,6 +198,10 @@ def shell_to_py(argv):
 
     commons = list()
     specials = list()
+
+    if args.dict:
+        commons.append("import tarfile\n\n\n")
+        specials.append("import tarfile\n\n\nBYTES_BY_NAME = dict()\n\n\n")
 
     commons.append(", args")
     specials.append("")
@@ -211,15 +218,25 @@ def shell_to_py(argv):
             "            # Trace the walk\n\n",
         )
         specials.append("")
+
     if args.x and not args.k:
         commons.append(
             "                # Skip File's created before now\n\n",
         )
         specials.append("")
+
     if args.x and not args.v:
         commons.append("# Trace the walk and make the Dirs")
-        specials.append("# Make the Dirs")
-    if args.O:
+        if args.dict or args.O:
+            specials.append("# Skip the Dirs")
+        else:
+            specials.append("# Make the Dirs")
+    if args.x and args.v:
+        if args.dict or args.O:
+            commons.append("# Trace the walk and make the Dirs")
+            specials.append("# Trace the walk")
+
+    if args.dict or args.O:
         commons.append(
             "                # Write the bytes as a separate File\n\n",
         )
@@ -229,6 +246,12 @@ def shell_to_py(argv):
             "                # Write the bytes to Stdout\n\n",
         )
         specials.append("")
+    if not args.dict:
+        commons.append(
+            "                # Write the bytes to Dict\n\n",
+        )
+        specials.append("")
+
     if not patterns:
         commons.append(
             "            # Skip the Dir or File if not at or below Pattern\n\n",
@@ -274,7 +297,7 @@ def tar_edit_py(py, args, module_py, commons, specials):
 
         py1 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
 
-        for argname in "v k O patterns".split():
+        for argname in "v k O dict patterns".split():
 
             got_yes = vars(args)[argname]
             if_yes_line = "if args.{}:".format(argname)
@@ -404,8 +427,9 @@ def tar_extract(filepath, patterns, args):
                 if args.v:
                     stderr_print(name + os.sep)
 
-                if not os.path.isdir(outpath):
-                    os.makedirs(outpath)
+                if not args.O:
+                    if not os.path.isdir(outpath):
+                        os.makedirs(outpath)
 
                 continue
 
@@ -445,6 +469,11 @@ def tar_extract(filepath, patterns, args):
                     with open("/dev/stdout", "wb") as outgoing:
                         outgoing.write(member_bytes)
 
+                # Write the bytes to Dict
+
+                if args.dict:
+                    BYTES_BY_NAME[name] = member_bytes
+
                 # : also extract the Perms and Stamp, but not so much the Owns
 
     if args.k:
@@ -455,6 +484,13 @@ def tar_extract(filepath, patterns, args):
     if patterns:
         if tar_fnmatches_exit(fnmatches):
             sys.exit(1)
+
+    if args.dict:
+        stderr_print(
+            "tar: Exiting with {} keys in BYTES_BY_NAME".format(
+                len(BYTES_BY_NAME.keys())
+            )
+        )
 
 
 def tar_fnmatches_enter(patterns):

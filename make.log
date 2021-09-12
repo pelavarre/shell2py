@@ -215,7 +215,7 @@ def find(top):
 
 find(top=".")
 bin/find.py -name '.?*' >file
-head -10 file
+head -4 file
 .
 ./.dotdir
 ./.git
@@ -309,7 +309,7 @@ head -10 file
 :
 :
 :
-shell2py tac
+shell2py tac -
 def tac_file(file):
 
     with open(file) as reading:
@@ -330,7 +330,7 @@ def tac_file(file):
 files = ["/dev/stdin"]
 for file in files:
     tac_file(file)
-bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py
+bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py -
 ZC
 B
 A

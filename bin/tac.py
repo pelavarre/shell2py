@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-usage: tac.py [-h] [FILE [FILE ...]]
+usage: tac.py [-h] [FILE ...]
 
 show the lines of some files, but in reverse order, last line first
 
@@ -17,7 +17,7 @@ quirks:
 
 examples:
   tac.py --help  # show this help message and exit
-  (echo A; echo B; echo C; echo -n Z) |tac  # echo ZC; echo B; echo A
+  (echo A; echo B; echo C; echo -n Z) |tac -  # echo ZC; echo B; echo A
 """
 
 import sys
@@ -38,10 +38,6 @@ def parse_tac_args(argv):
     parser.add_argument(
         "files", metavar="FILE", nargs="*", help="a file to copy out (default: stdin)"
     )
-
-    got_usage = parser.format_usage()
-    assert got_usage == "usage: tac.py [-h] [FILE ...]\n", got_usage
-    parser.usage = "tac.py [-h] [FILE [FILE ...]]"
 
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
