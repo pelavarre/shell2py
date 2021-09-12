@@ -78,7 +78,7 @@ flake8:
 
 
 # call to test each piece of this Shell2Py package
-go: go_shell2py go_ls go_echo go_find go_tac go_tar
+go: go_shell2py go_ls go_echo go_find go_grep go_less go_tac go_tar
 	:
 	:
 
@@ -94,18 +94,6 @@ go_shell2py:
 	$V -h
 	:
 	$V --help
-
-
-# test how Ls shows the Files and Dirs inside a Dir
-go_ls:
-	:
-	:
-	$V ls || echo "+ exit $$?"
-	:
-	$V ls --help
-	:
-	$V ls -1 |cat -n |expand |sed 's,  *$$,,'
-	bin/ls.py -1
 
 
 # test how Echo sees your Shell split apart the chars you're typing
@@ -125,6 +113,8 @@ go_echo:
 # test how Find shows a Top Dir of Dirs, and the Files and Dirs it contains
 go_find: .dotdir-and-dir
 	:
+	rm -fr file
+	:
 	$V find -maxdepth 1 -type d
 	bin/find.py -maxdepth 1 -type d |grep i
 	:
@@ -143,6 +133,8 @@ go_find: .dotdir-and-dir
 	$V find -name '.?*' -prune -o -type d -print
 	bin/find.py -name '.?*' -prune -o -type d -print >file
 	head -10 file
+	:
+	rm -fr file
 	:
 
 
@@ -173,6 +165,45 @@ sigpipe:
 	python3 -c 'import signal; print(int(signal.SIGPIPE))'  # 13 == 141 - 128
 	(find ~ |head -3) || echo "+ exit $$?"  # + exit 141
 	(bin/find.py ~ |head -3) || echo "+ exit $$?"  # + exit 120
+
+
+# test how Grep picks out Lines of Bytes of Stdin that match a Python Reg Ex
+go_grep:
+	:
+	:
+	rm -fr file
+	:
+	$V grep.py -anw 'def|jkl|pqr'
+	:
+	echo -n 'abc@def ghi@jklmno@pqr stu@vwx' |tr '@' '\n' >file && hexdump -C file
+	cat file |grep.py -anw 'def|jkl|pqr'
+	cat file |grep.py -aw 'def|jkl|pqr'
+	cat file |grep.py -a 'def|jkl|pqr'
+	(cat file |grep.py 'def|jkl|pqr') || echo "+ exit $$?"
+	:
+	rm -fr file
+
+
+# test how Less Py layers thinly over Shell
+go_less:
+	:
+	:
+	$V less -FIXR
+	:
+	ls |less.py -FIXR  # hangs at screens of less than 6 lines
+
+
+# test how Ls shows the Files and Dirs inside a Dir
+go_ls:
+	:
+	:
+	$V ls || echo "+ exit $$?"
+	:
+	$V ls --help
+	:
+	$V ls -1 |cat -n |expand |sed 's,  *$$,,'
+	bin/ls.py -1
+
 
 
 # test how Tac shows the lines of a file, but in reverse order

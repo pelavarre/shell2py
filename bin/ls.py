@@ -29,6 +29,7 @@ def main():
 def parse_ls_args(argv):
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__, drop_help=True)
+
     parser.add_argument(
         "--help", action="count", help="show this help message and exit"
     )

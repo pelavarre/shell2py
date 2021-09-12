@@ -13,6 +13,9 @@ echo 'for P in bin/*.py; do echo |python3 -m pdb $P; done' |bash
 > /Users/plavarre/Public/shell2py/bin/find.py(3)<module>()
 -> """
 (Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/grep.py(3)<module>()
+-> r"""
+(Pdb) (Pdb)
 > /Users/plavarre/Public/shell2py/bin/less.py(3)<module>()
 -> """
 (Pdb) (Pdb)
@@ -38,7 +41,7 @@ echo 'for P in bin/*.py; do echo |python3 -m pdb $P; done' |bash
 :
 ~/.venvs/pips/bin/black bin/*.py
 All done! ✨ 🍰 ✨
-11 files left unchanged.
+12 files left unchanged.
 :
 :
 ~/.venvs/pips/bin/flake8 --max-line-length=999 --ignore=E203,W503 bin/*.py
@@ -50,7 +53,7 @@ shell2py.py: error: the following arguments are required: VERB
 + exit 2
 :
 shell2py help || echo "+ exit $?"
-shell2py.py: error: argument VERB: invalid choice: 'help' (choose from 'dig', 'echo', 'find', 'less', 'ls', 'scp', 'ssh', 'tac', 'tar')
+shell2py.py: error: argument VERB: invalid choice: 'help' (choose from 'dig', 'echo', 'find', 'grep', 'less', 'ls', 'scp', 'ssh', 'tac', 'tar')
 + exit 2
 :
 shell2py -h
@@ -178,6 +181,8 @@ touch .dotdir/dotdir-child
 mkdir -p dir/
 touch dir/.dir-dotchild
 touch dir/dir-child
+:
+rm -fr file
 :
 shell2py find -maxdepth 1 -type d
 import os
@@ -319,6 +324,73 @@ head -10 file
 ./dir
 ./bin/__pycache__
 :
+rm -fr file
+:
+:
+:
+rm -fr file
+:
+shell2py grep.py -anw 'def|jkl|pqr'
+import re
+import sys
+
+def grep(pyregex):
+
+    fd = sys.stdout.fileno()
+    lines = 0
+    while True:
+        line = sys.stdin.buffer.readline()
+        if not line:
+
+            break
+
+        lines += 1
+        if re.search(pyregex, string=line):
+
+            data = str(lines).encode() + b":" + line
+            os.write(fd, data)
+
+grep(rb"\b(def|jkl|pqr)\b")
+:
+echo -n 'abc@def ghi@jklmno@pqr stu@vwx' |tr '@' '\n' >file && hexdump -C file
+00000000  61 62 63 0a 64 65 66 20  67 68 69 0a 6a 6b 6c 6d  |abc.def ghi.jklm|
+00000010  6e 6f 0a 70 71 72 20 73  74 75 0a 76 77 78        |no.pqr stu.vwx|
+0000001e
+cat file |grep.py -anw 'def|jkl|pqr'
+2:def ghi
+4:pqr stu
+cat file |grep.py -aw 'def|jkl|pqr'
+def ghi
+pqr stu
+cat file |grep.py -a 'def|jkl|pqr'
+def ghi
+jklmno
+pqr stu
+(cat file |grep.py 'def|jkl|pqr') || echo "+ exit $?"
+grep.py: error: choose argument -a
++ exit 2
+:
+rm -fr file
+:
+:
+shell2py less -FIXR
+import shlex
+import subprocess
+import sys
+
+shline = "less -FIXR"
+run = subprocess.run(shlex.split("less -FIXR"), shell=False)
+
+if run.returncode:
+    sys.stderr.write("+ exit {}\n".format(run.returncode))
+    sys.exit(run.returncode)
+:
+ls |less.py -FIXR  # hangs at screens of less than 6 lines
+Makefile
+README.md
+bin
+dir
+make.log
 :
 :
 shell2py tac -
@@ -947,6 +1019,7 @@ bin/_scraps_.py
 bin/dig.py
 bin/echo.py
 bin/find.py
+bin/grep.py
 bin/less.py
 bin/ls.py
 bin/scp.py

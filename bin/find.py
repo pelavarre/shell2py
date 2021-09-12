@@ -141,6 +141,7 @@ def shell_to_py(argv):
                 _scraps_.shlex_quote(args.name)
             )
         )
+
         sys.exit(2)
 
     drop_deeper = args.maxdepth
@@ -155,16 +156,18 @@ def shell_to_py(argv):
     if not drop_dirs:
         if args_not:
             sys.stderr.write("find.py: error: argument -not {}: choose -not -type d\n")
+
             sys.exit(2)
 
     if not drop_hidden:
         for argname in "prune o print".split():
             if vars(args)[argname]:
                 sys.stderr.write(
-                    "find.py: error: argument -{}: choose -prune -o -print".format(
+                    "find.py: error: argument -{}: choose -prune -o -print\n".format(
                         argname
                     )
                 )
+
                 sys.exit(2)
 
     # Style the Shell line of the Python

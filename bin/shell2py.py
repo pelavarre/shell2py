@@ -34,6 +34,8 @@ import echo
 
 import find
 
+import grep
+
 import less
 
 import ls
@@ -53,7 +55,7 @@ def main():
 
     # TODO: import just the modules needed for this run of the main args
 
-    _ = (dig, echo, find, less, ls, scp, ssh, tac, tar)
+    _ = (dig, echo, find, grep, less, ls, scp, ssh, tac, tar)
 
     # Discover the Python modules of Shell Verbs near here
 

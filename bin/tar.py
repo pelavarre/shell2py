@@ -180,9 +180,9 @@ def shell_to_py(argv):
 
     patterns = list()
     for pat in args.patterns:
-
         if not pat:
             stderr_print("tar: Error inclusion pattern: pattern is empty")
+
             sys.exit(2)
 
         rstripped = pat.rstrip(os.sep)
@@ -190,7 +190,7 @@ def shell_to_py(argv):
 
         patterns.append(rstripped)
 
-    # Reject obvious contradictions  # FIXME: log explanations a la ArgParse Exclusive
+    # Reject obvious contradictions
 
     if args.t and args.x:
         stderr_print("tar.py: error: arguments -t -x: choose one, not both")
