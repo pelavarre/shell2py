@@ -58,11 +58,9 @@ import _scraps_
 BYTES_BY_NAME = dict()  # collect bytes of Tgz members, for the '-x --dict' mode
 
 
-def main(argv=None):
+def main():
 
-    as_argv = sys.argv if (argv is None) else argv
-
-    _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
+    _scraps_.exec_shell_to_py(name=__name__)
 
     if main.args.dict:
         BYTES_BY_NAME.update(_scraps_.BYTES_BY_NAME)

@@ -23,15 +23,14 @@ examples:
   echo.py --v 'Hello,' 'Echo World!'
 """
 
-import sys
 import textwrap
 
 import _scraps_
 
 
-def main(argv=None):
-    as_argv = sys.argv if (argv is None) else argv
-    _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
+def main():
+
+    _scraps_.exec_shell_to_py(name=__name__)
 
 
 def parse_echo_args(argv):

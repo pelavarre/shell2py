@@ -10,7 +10,7 @@ V=shell2py
 
 
 # define:  make
-default:
+default: py black flake8
 	:
 	:
 	: press Control+C if you meant:  make secretly

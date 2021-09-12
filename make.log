@@ -4,16 +4,28 @@ echo 'for P in bin/*.py; do echo |python3 -m pdb $P; done' |bash
 > /Users/plavarre/Public/shell2py/bin/_scraps_.py(1)<module>()
 -> """
 (Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/dig.py(3)<module>()
+-> """
+(Pdb) (Pdb)
 > /Users/plavarre/Public/shell2py/bin/echo.py(3)<module>()
 -> """
 (Pdb) (Pdb)
 > /Users/plavarre/Public/shell2py/bin/find.py(3)<module>()
 -> """
 (Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/less.py(3)<module>()
+-> """
+(Pdb) (Pdb)
 > /Users/plavarre/Public/shell2py/bin/ls.py(3)<module>()
 -> """
 (Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/scp.py(3)<module>()
+-> """
+(Pdb) (Pdb)
 > /Users/plavarre/Public/shell2py/bin/shell2py.py(3)<module>()
+-> """
+(Pdb) (Pdb)
+> /Users/plavarre/Public/shell2py/bin/ssh.py(3)<module>()
 -> """
 (Pdb) (Pdb)
 > /Users/plavarre/Public/shell2py/bin/tac.py(3)<module>()
@@ -26,7 +38,7 @@ echo 'for P in bin/*.py; do echo |python3 -m pdb $P; done' |bash
 :
 ~/.venvs/pips/bin/black bin/*.py
 All done! ✨ 🍰 ✨
-7 files left unchanged.
+11 files left unchanged.
 :
 :
 ~/.venvs/pips/bin/flake8 --max-line-length=999 --ignore=E203,W503 bin/*.py
@@ -38,7 +50,7 @@ shell2py.py: error: the following arguments are required: VERB
 + exit 2
 :
 shell2py help || echo "+ exit $?"
-shell2py.py: error: argument VERB: invalid choice: 'help' (choose from 'echo', 'find', 'ls', 'tac', 'tar')
+shell2py.py: error: argument VERB: invalid choice: 'help' (choose from 'dig', 'echo', 'find', 'less', 'ls', 'scp', 'ssh', 'tac', 'tar')
 + exit 2
 :
 shell2py -h
@@ -254,7 +266,7 @@ head -10 file
 ./make.log
 ./bin/__pycache__
 ./bin/_scraps_.py
-./bin/echo.py
+./bin/dig.py
 :
 shell2py find -type d
 import os
@@ -932,11 +944,15 @@ git ls-files
 Makefile
 README.md
 bin/_scraps_.py
+bin/dig.py
 bin/echo.py
 bin/find.py
+bin/less.py
 bin/ls.py
+bin/scp.py
 bin/shell2py
 bin/shell2py.py
+bin/ssh.py
 bin/tac.py
 bin/tar.py
 make.log

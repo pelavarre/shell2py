@@ -28,11 +28,19 @@ import sys
 
 import _scraps_
 
+import dig
+
 import echo
 
 import find
 
+import less
+
 import ls
+
+import scp
+
+import ssh
 
 import tac
 
@@ -45,7 +53,7 @@ def main():
 
     # TODO: import just the modules needed for this run of the main args
 
-    _ = (echo, find, ls, tac, tar)
+    _ = (dig, echo, find, less, ls, scp, ssh, tac, tar)
 
     # Discover the Python modules of Shell Verbs near here
 
@@ -87,17 +95,9 @@ def main():
 
 def parse_shell2py_args(argv):
 
-    # Offer the "--help" or the "-h"
+    # Print stripped doc & exit 0 if first arg is '-h', '--h', '--he', ... '--help'
 
-    if argv[1:]:
-        arg = argv[1]
-
-        helping = "--help".startswith(arg) and (len(arg) >= len("--h"))
-        h_ing = arg == "-h"
-
-        if helping or h_ing:
-            print(__doc__.strip())
-            sys.exit(0)
+    _scraps_.parse_left_help_args(argv, doc=__doc__)
 
     # Require Verb
 

@@ -37,16 +37,12 @@ examples:
 
 # TODO: -newer, -size
 
-import sys
-
 import _scraps_
 
 
-def main(argv=None):
+def main():
 
-    as_argv = sys.argv if (argv is None) else argv
-
-    _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
+    _scraps_.exec_shell_to_py(name=__name__)
 
 
 def parse_find_args(argv):

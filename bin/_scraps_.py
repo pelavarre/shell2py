@@ -13,7 +13,6 @@ import re
 import shlex
 import string
 import sys
-
 import textwrap
 
 
@@ -211,13 +210,45 @@ def py_dedent(py, ifline, as_truthy):
 #
 
 
-def exec_shell_to_py(name, argv):
+def exec_shell_to_py(name):
     """Convert one Shell Line to Python and run it"""
 
     module = sys.modules[name]
-    py = module_shell_to_py(module, argv=argv)
+    py = module_shell_to_py(module, argv=sys.argv)
 
     exec(py, globals())
+
+
+def main_argv_to_py(argv):
+    """Convert one Main ArgV to a Python 3 Shell False Subprocess Run of ShLine"""
+
+    # Join and re-split the ArgV
+
+    shline = shlex_join(argv)
+
+    splits = shlex.split(shline)
+    assert argv == splits, (argv, splits)
+
+    # Say in Python what they said in Shell
+
+    py = textwrap.dedent(
+        r"""
+        import shlex
+        import subprocess
+        import sys
+
+        shline = $SHLINE
+        run = subprocess.run(shlex.split($SHLINE), shell=False)
+
+        if run.returncode:
+            sys.stderr.write("+ exit {}\n".format(run.returncode))
+            sys.exit(run.returncode)
+        """
+    ).strip()
+
+    py = py.replace("$SHLINE", as_py_value(shline))
+
+    return py
 
 
 def module_shell_to_py(module, argv):
@@ -424,6 +455,21 @@ def exit_unless_doc_eq(parser, file, doc):
         sys.stderr.write("\n".join(lines) + "\n")
 
         sys.exit(1)  # trust caller to log SystemExit exceptions well
+
+
+# deffed in many files  # missing from docs.python.org till Oct/2019 Python 3.8
+def parse_left_help_args(argv, doc):
+    """Print stripped doc & exit 0 if first arg is '-h', '--h', '--he', ... '--help'"""
+
+    if argv[1:]:
+        arg = argv[1]
+
+        helping = "--help".startswith(arg) and (len(arg) >= len("--h"))
+        h_ing = arg == "-h"
+
+        if helping or h_ing:
+            print(doc.strip())
+            sys.exit(0)
 
 
 # deffed in many files  # missing from docs.python.org till Oct/2019 Python 3.8

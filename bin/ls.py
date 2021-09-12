@@ -17,15 +17,13 @@ examples:
   ls -1  # name each file or dir inside the current dir
 """
 
-import sys
 import textwrap
 
 import _scraps_
 
 
-def main(argv=None):
-    as_argv = sys.argv if (argv is None) else argv
-    _scraps_.exec_shell_to_py(name=__name__, argv=as_argv)
+def main():
+    _scraps_.exec_shell_to_py(name=__name__)
 
 
 def parse_ls_args(argv):
