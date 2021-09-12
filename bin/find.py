@@ -76,6 +76,7 @@ def parse_find_args(argv):
 
     parser.add_argument(
         "--not",
+        dest="not_",
         action="count",
         help="reverse what follows, like '-not type d' to find files not dirs",
     )
@@ -119,74 +120,28 @@ def shell_to_py(argv):
 
     args = parse_find_args(argv)
 
-    args_print = vars(args)["print"]  # although Python 3 doesn't reserve 'print'
-    args_not = vars(args)["not"]
-
     top = args.top if args.top else "."
 
     # Reject obvious contradictions
 
-    if args.name and (args.name != ".?*"):
-        sys.stderr.write(
-            "find.py: error: argument -name {}: choose {!r}\n".format(
-                _scraps_.shlex_quote(args.name), _scraps_.shlex_quote(".?*")
-            )
-        )
-
-        sys.exit(2)
-
-    if args.type and (args.type != "d"):
-        sys.stderr.write(
-            "find.py: error: argument -type {}: choose d\n".format(
-                _scraps_.shlex_quote(args.name)
-            )
-        )
-
-        sys.exit(2)
-
     drop_deeper = args.maxdepth
-    drop_dirs = args.type and args_not
-    drop_files = args.type and not args_not
-    drop_hidden = args.name and args.prune and args.o and args_print
+    drop_dirs = args.type and args.not_
+    drop_files = args.type and not args.not_
+    drop_hidden = args.name and args.prune and args.o and args.print
     take_hidden = args.name and not drop_hidden
 
-    assert not (drop_dirs and drop_files)
-    assert not (drop_hidden and take_hidden)
+    exit_unless_simple_find(
+        args,
+        drop_deeper=drop_deeper,
+        drop_dirs=drop_dirs,
+        drop_files=drop_files,
+        drop_hidden=drop_hidden,
+        take_hidden=take_hidden,
+    )
 
-    if not drop_dirs:
-        if args_not:
-            sys.stderr.write("find.py: error: argument -not {}: choose -not -type d\n")
+    # Form a stylish copy of the Shell Find Command Line
 
-            sys.exit(2)
-
-    if not drop_hidden:
-        for argname in "prune o print".split():
-            if vars(args)[argname]:
-                sys.stderr.write(
-                    "find.py: error: argument -{}: choose -prune -o -print\n".format(
-                        argname
-                    )
-                )
-
-                sys.exit(2)
-
-    # Style the Shell line of the Python
-
-    shline = "find"
-    if args.maxdepth:
-        shline += " --maxdepth {}".format(args.maxdepth)
-    if args.name:
-        shline += " --name {}".format(_scraps_.shlex_quote(args.name))
-    if args_not:
-        shline += " --not"
-    if args.prune:
-        shline += " --prune"
-    if args.o:
-        shline += " --o"
-    if args.type:
-        shline += " --type {}".format(args.type)
-    if args_print:
-        shline += " --print"
+    shline = shlex_join_find(args)
 
     # Form the Python
 
@@ -257,6 +212,72 @@ def shell_to_py(argv):
         py = py.replace("$MAXDEPTH", args.maxdepth)
 
     return py
+
+
+def exit_unless_simple_find(
+    args, drop_deeper, drop_dirs, drop_files, drop_hidden, take_hidden
+):
+    """Reject obvious Find option contradictions, as if untranslatable"""
+
+    if args.name and (args.name != ".?*"):
+        sys.stderr.write(
+            "find.py: error: argument -name {}: choose {!r}\n".format(
+                _scraps_.shlex_quote(args.name), _scraps_.shlex_quote(".?*")
+            )
+        )
+
+        sys.exit(2)
+
+    if args.type and (args.type != "d"):
+        sys.stderr.write(
+            "find.py: error: argument -type {}: choose d\n".format(
+                _scraps_.shlex_quote(args.name)
+            )
+        )
+
+        sys.exit(2)
+
+    assert not (drop_dirs and drop_files)
+    assert not (drop_hidden and take_hidden)
+
+    if not drop_dirs:
+        if args.not_:
+            sys.stderr.write("find.py: error: argument -not {}: choose -not -type d\n")
+
+            sys.exit(2)
+
+    if not drop_hidden:
+        for argname in "prune o print".split():
+            if vars(args)[argname]:
+                sys.stderr.write(
+                    "find.py: error: argument -{}: choose -prune -o -print\n".format(
+                        argname
+                    )
+                )
+
+                sys.exit(2)
+
+
+def shlex_join_find(args):
+    """Form a stylish copy of the Shell Find Command Line"""
+
+    shline = "find"
+    if args.maxdepth:
+        shline += " --maxdepth {}".format(args.maxdepth)
+    if args.name:
+        shline += " --name {}".format(_scraps_.shlex_quote(args.name))
+    if args.not_:
+        shline += " --not"
+    if args.prune:
+        shline += " --prune"
+    if args.o:
+        shline += " --o"
+    if args.type:
+        shline += " --type {}".format(args.type)
+    if args.print:
+        shline += " --print"
+
+    return shline
 
 
 if __name__ == "__main__":

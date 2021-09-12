@@ -175,131 +175,26 @@ def shell_to_py(argv):
     args = parse_tar_args(argv)
     main.args = args
 
-    # Shrug off the trailing 'os.sep's of each pattern, if they exist,
-    # but do require a not-empty pattern
+    # Reject obvious contradictions
+
+    exit_unless_simple_tar(args)
+
+    # Shrug off the trailing 'os.sep's of each pattern, if they exist
 
     patterns = list()
     for pat in args.patterns:
-        if not pat:
-            stderr_print("tar: Error inclusion pattern: pattern is empty")
-
-            sys.exit(2)
-
+        assert pat  # because guarded by 'exit_unless_simple_tar'
         rstripped = pat.rstrip(os.sep)
         rstripped = rstripped if rstripped else os.sep
+        patterns.append(rstripped)  # may be dupe
 
-        patterns.append(rstripped)
+    # Form a stylish copy of the Shell Tar Command Line
 
-    # Reject obvious contradictions
+    shline = shlex_join_tar(args, patterns=patterns)
 
-    if args.t and args.x:
-        stderr_print("tar.py: error: arguments -t -x: choose one, not both")
-        sys.exit(2)
-    if (not args.t) and (not args.x):
-        stderr_print("tar.py: error: arguments -t -x: choose one, not neither")
-        sys.exit(2)
+    # Collect
 
-    if not args.x:
-        for argname in "dict k O".split():
-            if vars(args)[argname]:
-                stderr_print(
-                    "tar.py: error: argument {}: add -x if you mean it".format(argname)
-                )
-                sys.exit(2)
-
-    if (args.dict or args.k or args.O) and not args.x:
-        stderr_print("tar.py: error: argument -f FILE required")
-        sys.exit(2)
-
-    if args.dict and args.O:
-        stderr_print("tar.py: error: arguments --dict -O: choose one, not both")
-        sys.exit(2)
-
-    if not args.f:
-        stderr_print("tar.py: error: argument -f FILE required")
-        sys.exit(2)
-
-    # Style the Shell line of the Python
-
-    flags = "".join(_ for _ in "txvkf" if vars(args)[_])
-
-    shline = "tar"
-    if not (args.dict or args.O or patterns):
-        shline += " " + flags
-    else:
-        shline += " -" + flags
-        if args.O:
-            shline += " -O" + flags
-        if args.dict:
-            shline += " --dict" + flags
-        if patterns:
-            for pattern in patterns:
-                shline += " " + _scraps_.shlex_quote(pattern)
-
-    # Calculate edits required
-    # TODO: Less explicit deletes of comments before the deletes of code
-
-    commons = list()
-    specials = list()
-
-    if args.dict:
-        commons.append("import tarfile\n\n\n")
-        specials.append("import tarfile\n\n\nBYTES_BY_NAME = dict()\n\n\n")
-
-    commons.append(", args")
-    specials.append("")
-
-    if not patterns:
-        commons.append(", patterns")
-        specials.append("")
-
-    commons.append("tar xvkf" if args.x else "tar tvf")
-    specials.append(shline)
-
-    if args.t and not args.v:
-        commons.append(
-            "            # Trace the walk\n\n",
-        )
-        specials.append("")
-
-    if args.x and not args.k:
-        commons.append(
-            "                # Skip File's created before now\n\n",
-        )
-        specials.append("")
-
-    if args.x and not args.v:
-        commons.append("# Trace the walk and make the Dirs")
-        if args.dict or args.O:
-            specials.append("# Skip the Dirs")
-        else:
-            specials.append("# Make the Dirs")
-    if args.x and args.v:
-        if args.dict or args.O:
-            commons.append("# Trace the walk and make the Dirs")
-            specials.append("# Trace the walk")
-
-    if args.dict or args.O:
-        commons.append(
-            "                # Write the bytes as a separate File\n\n",
-        )
-        specials.append("")
-    if not args.O:
-        commons.append(
-            "                # Write the bytes to Stdout\n\n",
-        )
-        specials.append("")
-    if not args.dict:
-        commons.append(
-            "                # Write the bytes to Dict\n\n",
-        )
-        specials.append("")
-
-    if not patterns:
-        commons.append(
-            "            # Skip the Dir or File if not at or below Pattern\n\n",
-        )
-        specials.append("")
+    (commons, specials) = defer_calls_to_replace(shline, args=args, patterns=patterns)
 
     # Read this sourcefile
 
@@ -364,7 +259,140 @@ def tar_edit_py(py, args, module_py, commons, specials):
         py0 = py1
 
 
-def tar_list(filepath, patterns, args):
+def exit_unless_simple_tar(args):  # noqa flake8 C901 too complex (11)
+    """Reject obvious Tar option contradictions, as if untranslatable"""
+
+    for pat in args.patterns:
+        if not pat:
+            stderr_print("tar: Error inclusion pattern: pattern is empty")
+            sys.exit(2)
+
+    if args.t and args.x:
+        stderr_print("tar.py: error: arguments -t -x: choose one, not both")
+        sys.exit(2)
+    if (not args.t) and (not args.x):
+        stderr_print("tar.py: error: arguments -t -x: choose one, not neither")
+        sys.exit(2)
+
+    if not args.x:
+        for argname in "dict k O".split():
+            if vars(args)[argname]:
+                stderr_print(
+                    "tar.py: error: argument {}: add -x if you mean it".format(argname)
+                )
+                sys.exit(2)
+
+    if (args.dict or args.k or args.O) and not args.x:
+        stderr_print("tar.py: error: argument -f FILE required")
+        sys.exit(2)
+
+    if args.dict and args.O:
+        stderr_print("tar.py: error: arguments --dict -O: choose one, not both")
+        sys.exit(2)
+
+    if not args.f:
+        stderr_print("tar.py: error: argument -f FILE required")
+        sys.exit(2)
+
+
+def shlex_join_tar(args, patterns):
+    """Form a stylish copy of the Shell Tar Command Line"""
+
+    flags = "".join(_ for _ in "txvkf" if vars(args)[_])
+
+    shline = "tar"
+    if not (args.dict or args.O or patterns):
+        shline += " " + flags
+    else:
+        shline += " -" + flags
+        if args.O:
+            shline += " -O" + flags
+        if args.dict:
+            shline += " --dict" + flags
+        if patterns:
+            for pattern in patterns:
+                shline += " " + _scraps_.shlex_quote(pattern)
+
+    return shline
+
+
+def defer_calls_to_replace(shline, args, patterns):  # noqa flake8 C901 too complex (13)
+    """Calculate the edits that may be required, without immediately applying them"""
+
+    # FIXME: Less explicit deletes of comments before the deletes of code
+
+    commons = list()
+    specials = list()
+
+    if args.dict:
+        commons.append("import tarfile\n\n\n")
+        specials.append("import tarfile\n\n\nBYTES_BY_NAME = dict()\n\n\n")
+
+    commons.append(", args")
+    specials.append("")
+
+    if not patterns:
+        commons.append(", patterns")
+        specials.append("")
+
+    commons.append("tar xvkf" if args.x else "tar tvf")
+    specials.append(shline)
+
+    if args.t and not args.v:
+        commons.append(
+            "            # Trace the walk\n\n",
+        )
+        specials.append("")
+
+    if args.x and not args.k:
+        commons.append(
+            "                # Skip File's created before now\n\n",
+        )
+        specials.append("")
+
+    if args.x and not args.v:
+        commons.append("# Trace the walk and make the Dirs")
+        if args.dict or args.O:
+            specials.append("# Skip the Dirs")
+        else:
+            specials.append("# Make the Dirs")
+    if args.x and args.v:
+        if args.dict or args.O:
+            commons.append("# Trace the walk and make the Dirs")
+            specials.append("# Trace the walk")
+
+    if args.dict or args.O:
+        commons.append(
+            "                # Write the bytes as a separate File\n\n",
+        )
+        specials.append("")
+    if not args.O:
+        commons.append(
+            "                # Write the bytes to Stdout\n\n",
+        )
+        specials.append("")
+    if not args.dict:
+        commons.append(
+            "                # Write the bytes to Dict\n\n",
+        )
+        specials.append("")
+
+    if not patterns:
+        commons.append(
+            "            # Skip the Dir or File if not at or below Pattern\n\n",
+        )
+        specials.append("")
+
+    commons.append("  # noqa flake8 C901 too complex (22)")
+    specials.append("")
+
+    commons.append("  # noqa flake8 C901 too complex (32)")
+    specials.append("")
+
+    return (commons, specials)
+
+
+def tar_list(filepath, patterns, args):  # noqa flake8 C901 too complex (32)
     """List tarred files, a la 'tar tvf'"""
 
     if patterns:
@@ -432,7 +460,7 @@ def tar_member_details(member):
     return line
 
 
-def tar_extract(filepath, patterns, args):
+def tar_extract(filepath, patterns, args):  # noqa flake8 C901 too complex (22)
     """Extract tarred files, a la 'tar xvkf'"""
 
     if args.k:

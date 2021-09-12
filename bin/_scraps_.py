@@ -312,17 +312,6 @@ def c_pre_process(chars, cpp_vars):
 
     votes = list()
 
-    def cpp_get(cpp_vars, word):
-        """Require UPPERCASE input, return lowercase equivalent"""
-
-        assert word == word.upper(), word
-        key = word.lower()
-
-        assert key in cpp_vars.keys(), (key, cpp_vars)
-        value = cpp_vars[key]
-
-        return value
-
     emits = list()
     for line in lines:
 
@@ -336,14 +325,14 @@ def c_pre_process(chars, cpp_vars):
 
                 if cpp_verb == "#if":
                     assert len(cpp_words) == 2, cpp_words
-                    value = cpp_get(cpp_vars, word=cpp_words[1])
+                    value = _cpp_get(cpp_vars, word=cpp_words[1])
 
                     vote = value or None
                     votes.append(vote)
 
                 elif cpp_verb == "#elif":
                     assert len(cpp_words) == 2, cpp_words
-                    value = cpp_get(cpp_vars, word=cpp_words[1])
+                    value = _cpp_get(cpp_vars, word=cpp_words[1])
 
                     got_vote = votes.pop()
 
@@ -380,6 +369,18 @@ def c_pre_process(chars, cpp_vars):
     result = textwrap.dedent(result).strip()
 
     return result
+
+
+def _cpp_get(cpp_vars, word):
+    """Require UPPERCASE input, return Value at equivalent lowercase Key"""
+
+    assert word == word.upper(), word
+    key = word.lower()
+
+    assert key in cpp_vars.keys(), (key, cpp_vars)
+    value = cpp_vars[key]
+
+    return value
 
 
 # deffed in many files  # missing from docs.python.org

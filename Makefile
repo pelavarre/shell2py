@@ -43,8 +43,9 @@ setup:
 	pip install --upgrade pip
 	pip install --upgrade wheel
 	pip install --upgrade black
-	pip install --upgrade flake8
-	pip freeze |wc -l  # often 12
+	pip install --upgrade flake8  # includes:  pip install --upgrade mccabe
+	pip install --upgrade flake8-import-order
+	pip freeze |wc -l  # often 13
 
 
 # show which Shell is running beneath this Makefile
@@ -72,7 +73,7 @@ black:
 flake8:
 	:
 	:
-	~/.venvs/pips/bin/flake8 --max-line-length=999 --ignore=E203,W503 $D/*.py
+	~/.venvs/pips/bin/flake8 --max-line-length=999 --max-complexity 10 --ignore=E203,W503 $D/*.py
 # --ignore=E203  # Black '[ : ]' rules over Flake8 E203 whitespace before ':'
 # --ignore=W503  # 2017 Pep 8 and Black over Flake8 W503 line break before binary op
 

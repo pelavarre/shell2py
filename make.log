@@ -44,7 +44,7 @@ All done! ✨ 🍰 ✨
 12 files left unchanged.
 :
 :
-~/.venvs/pips/bin/flake8 --max-line-length=999 --ignore=E203,W503 bin/*.py
+~/.venvs/pips/bin/flake8 --max-line-length=999 --max-complexity 10 --ignore=E203,W503 bin/*.py
 :
 :
 shell2py || echo "+ exit $?"
