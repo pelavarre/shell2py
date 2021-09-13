@@ -795,6 +795,8 @@ def tar_list(filepath):
             if top != outdir:
                 assert outdir.startswith(top + os.sep), (outdir, top)
 
+            # Trace the walk
+
             if member.isdir():
                 print(name + os.sep)
             else:
@@ -993,6 +995,8 @@ def tar_list(filepath, patterns):
 
             if top != outdir:
                 assert outdir.startswith(top + os.sep), (outdir, top)
+
+            # Trace the walk
 
             if member.isdir():
                 print(name + os.sep)

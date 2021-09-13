@@ -338,12 +338,6 @@ def defer_calls_to_replace(shline, args, patterns):  # noqa flake8 C901 too comp
     commons.append("tar xvkf" if args.x else "tar tvf")
     specials.append(shline)
 
-    if args.t and not args.v:
-        commons.append(
-            "            # Trace the walk\n\n",
-        )
-        specials.append("")
-
     if args.x and not args.k:
         commons.append(
             "                # Skip File's created before now\n\n",
