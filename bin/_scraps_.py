@@ -129,7 +129,11 @@ def _py_pick_import_lines(names, module_py):
     # but go wrong over From Imports, Conditional Imports, etc
 
     import_line_by_name = dict()
-    for line in module_py.splitlines():
+
+    lines = module_py.splitlines()
+    lines = sorted(set(_.strip() for _ in lines if "import" in _))
+
+    for line in lines:
         words = line.split()
         if words and (words[0] == "import"):
             imported_name = words[-1]

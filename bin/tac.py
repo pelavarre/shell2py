@@ -53,21 +53,25 @@ def shell_to_py(argv):
     files = args.files if args.files else "-".split()
     files = list(("/dev/stdin" if (_ == "-") else _) for _ in files)
 
+    # Read this sourcefile
+
     module = sys.modules[__name__]
-    with open(module.__file__) as incoming:  # read this sourcefile
+    with open(module.__file__) as incoming:
         module_py = incoming.read()
 
     # Write the first sourcelines
 
     py1 = textwrap.dedent(
         """
-        files = $files
+        files = $FILES
         for file in files:
             tac_file(file)
         """
     ).strip()
 
-    py2 = py1.replace("$files", _scraps_.as_py_value(files))
+    py2 = py1.replace("$FILES", _scraps_.as_py_value(files))
+
+    # Form enough more sourcelines
 
     py3 = _scraps_.py_pick_lines(py=py2, module_py=module_py)
 

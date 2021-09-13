@@ -97,39 +97,124 @@ examples:
   ls bin/*  # show the verbs of Bash that this revision of Shell2Py will explain
 :
 :
-shell2py ls || echo "+ exit $?"
-usage: ls.py [--help] [-1]
-ls.py: error: need stronger translator, meanwhile the 'ls.py --help' examples do work
-+ exit 3
-:
 shell2py ls --help
-usage: ls.py [--help] [-1]
+usage: ls.py [--help] [-C] [-1] [TOP]
 
 show the files and dirs inside a dir
 
+positional arguments:
+  TOP     where to start looking (default: '.')
+
 optional arguments:
   --help  show this help message and exit
-  -1      print one filename or dirname per line
+  -C      show columns of names (default: True)
+  -1      show one name per line
 
 quirks:
-  you must choose '-1' or '-l', because default 'ls' style needs 'os.get_terminal_size'
+  squeezes columns to left, with just two blanks between columns, like Linux
+  doesn't show columns of equal width, like Mac
 
 examples:
   ls.py --help  # show this help message and exit
   ls -1  # name each file or dir inside the current dir
 :
-shell2py ls -1 |cat -n |expand |sed 's,  *$,,'
-     1  import os
-     2
-     3  filenames = sorted(os.listdir())
-     4  for filename in filenames:
-     5      if not filename.startswith("."):  # if not hidden
-     6          print(filename)
+shell2py ls -1
+import os
+
+names = sorted(os.listdir())  # dirs and files inside
+for name in names:
+    if not name.startswith("."):  # if not hidden
+        print(name)
 bin/ls.py -1
 Makefile
 README.md
 bin
 make.log
+:
+shell2py ls
+import argparse
+import os
+
+
+def ls_C(path):
+
+    names = sorted(os.listdir(path))  # dirs and files
+    names = list(_ for _ in names if not _.startswith("."))  # if not hidden
+
+    # note: 'ls -1' runs without struggling to fill a Terminal with 'join_shafts_of'
+
+    tty_size = argparse.Namespace(columns=80, lines=24)  # classic Terminal
+    try:
+        tty_size = os.get_terminal_size()
+    except OSError:
+        pass  # such as Stdout redirected to file
+
+    tty_columns = tty_size.columns
+
+    sep = "  "
+    chars = join_shafts_of(sep, cells=names, columns=tty_columns)
+    print(chars)
+
+
+def join_shafts_of(sep, cells, columns):
+    """Make as many Shafts as fit into the Columns with Sep's between them"""
+
+    strs = list(str(_) for _ in cells)
+
+    # Search for the shortest Matrix Height that fits all the Cells into the Columns
+
+    shafts = list()
+    columns_by_x = list()
+
+    len_strs = len(strs)
+    for max_y in range(len_strs + 1):
+        assert max_y < len_strs
+
+        matrix_height = max_y + 1
+        matrix_width = (len_strs + matrix_height - 1) // matrix_height
+        assert (matrix_width * matrix_height) >= len_strs
+
+        shafts = list()
+        for x in range(matrix_width):
+            shaft = strs[(x * matrix_height) :][:matrix_height]
+            shaft = (shaft + (matrix_height * [""]))[:matrix_height]
+            shafts.append(shaft)
+
+        columns_by_x = list()
+        for shaft in shafts:
+            shaft_columns = max(len(_) for _ in shaft)
+            columns_by_x.append(shaft_columns)
+
+        matrix_columns = sum(columns_by_x)
+        matrix_columns += (matrix_width - 1) * len(sep)
+
+        if matrix_columns < columns:
+
+            break
+
+    # Join the Chars
+
+    floors = tuple(zip(*shafts))  # Python 'zip(*' transposes NxN square matrices
+
+    lines = list()
+    for (y, floor) in enumerate(floors):
+        assert len(floor) == len(columns_by_x)
+        line = sep.join(f.ljust(c) for (f, c) in zip(floor, columns_by_x))
+        lines.append(line)
+
+    # Succeed
+
+    chars = "\n".join(lines)
+
+    return chars
+
+
+ls_C(".")
+bin/ls.py
+Makefile  README.md  bin  make.log
+bin/ls.py bin/
+__pycache__  dig.py   find.py  less.py  scp.py    shell2py.py  tac.py
+_scraps_.py  echo.py  grep.py  ls.py    shell2py  ssh.py       tar.py
 :
 :
 shell2py echo 'Hello, Echo World!'

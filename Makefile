@@ -198,13 +198,14 @@ go_less:
 go_ls:
 	:
 	:
-	$V ls || echo "+ exit $$?"
-	:
 	$V ls --help
 	:
-	$V ls -1 |cat -n |expand |sed 's,  *$$,,'
+	$V ls -1
 	bin/ls.py -1
-
+	:
+	$V ls
+	bin/ls.py
+	bin/ls.py bin/
 
 
 # test how Tac shows the lines of a file, but in reverse order
