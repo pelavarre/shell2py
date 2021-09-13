@@ -23,6 +23,7 @@ examples:
   seq 999 |less  # count lines like Environ $LINES does
 """
 
+import argparse
 import os
 import sys
 
@@ -36,16 +37,24 @@ def main():
 
 def parse_less_args(argv):
 
+    tty_size = argparse.Namespace(columns=80, lines=24)  # classic Terminal
+    try:
+        tty_size = os.get_terminal_size()
+    except OSError:
+        pass  # such as Stdout redirected to file
+
     try:
         _scraps_.parse_left_help_args(argv, doc=__doc__)
     except SystemExit:
-        (columns, lines) = os.get_terminal_size()  # since Sep/2012 Python 3.3
+        sys.stdout.flush()
         sys.stderr.write("\n")
         sys.stderr.write(
-            "note: LINES={} COLUMNS={} is the Py guess of 'stty size' here\n".format(
-                lines, columns
+            "note: LINES={} COLUMNS={} "
+            "is the Py guess of Stdout 'stty size' here\n".format(
+                tty_size.lines, tty_size.columns
             )
         )
+
         raise
 
 
