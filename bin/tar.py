@@ -22,12 +22,12 @@ optional arguments:
 
 quirks:
   lets you say classic 'tvf' to mean '-tvf', classic 'xvkf' to mean '-xvkf', etc
-  takes '-k' as meaning don't replace files created before now - like Linux, unlike Mac
+  takes '-k' as meaning don't replace files created before now (like Linux, unlike Mac)
   traces '-tv' dirs and files like Linux "u/g s y-m-D", not like Mac "u g s m d"
   traces '-x' dirs and files in Linux "f" format, not Mac "x f" format
   exits 1 if file is empty - like Linux exits 2, unlike Mac silently exits zero
-  exits 1 if any pattern matches no names - like Mac, vs Linux exits 2 and more often
-  exits 2 if pattern is empty - like Mac, vs Linux silently exits zero
+  exits 1 if any pattern matches no names (like Mac, vs Linux exits 2 and at overlaps)
+  exits 2 if pattern is empty string (like Mac, vs Linux silently exits zero)
 
 Bash script to compress a top dir as Tgz for test:
   rm -fr dir/ dir.tgz
@@ -204,13 +204,11 @@ def shell_to_py(argv):
 
     # Write the first sourceline
 
-    rep_file_path = _scraps_.as_py_value(args.f)
     main_func_name = "tar_extract" if args.x else "tar_list"
 
-    py1 = "{}({})".format(main_func_name, rep_file_path)
+    py1 = "{}($FILEPATH)".format(main_func_name)
     if patterns:
-        rep_patterns = _scraps_.as_py_value(patterns)
-        py1 = "{}({}, patterns={})".format(main_func_name, rep_file_path, rep_patterns)
+        py1 = "{}($FILEPATH, patterns=$PATTERNS)".format(main_func_name)
 
     # Add its Import's and Func's, delete its Dead Code
 
@@ -218,45 +216,50 @@ def shell_to_py(argv):
         py=py1, args=args, module_py=module_py, commons=commons, specials=specials
     )
 
-    return py2
+    # Inject strings, last of all
+
+    rep_file_path = _scraps_.as_py_value(args.f)
+    rep_patterns = _scraps_.as_py_value(patterns)
+
+    py3 = py2
+    py3 = py3.replace("$FILEPATH", rep_file_path)
+    py3 = py3.replace("$PATTERNS", rep_patterns)
+
+    return py3
 
 
 def tar_edit_py(py, args, module_py, commons, specials):
 
-    py0 = py
+    py1 = py
 
     count = 0
     while True:
         count += 1
-
         assert count <= 4, count
 
-        py1 = py0
+        py0 = py1
+
+        # Look for one more expansion
 
         py1 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
 
-        for argname in "v k O dict patterns".split():
-
-            got_yes = vars(args)[argname]
-            if_yes_line = "if args.{}:".format(argname)
-            if_yes_line = if_yes_line.replace("args.patterns", "patterns")
-            py1 = _scraps_.py_dedent(py1, ifline=if_yes_line, as_truthy=got_yes)
-
-            got_no = not got_yes
-            if_no_line = "if not args.{}:".format(argname)
-            if_no_line = if_no_line.replace("args.patterns", "patterns")
-            py1 = _scraps_.py_dedent(py1, ifline=if_no_line, as_truthy=got_no)
+        argnames = "v k O dict".split()
+        py1 = _scraps_.py_dedent_args(py=py1, args=args, argnames=argnames)
+        py1 = _scraps_.py_dedent_bool(py=py1, name="patterns", truthy=args.patterns)
 
         for (common, special) in zip(commons, specials):
             py1 = py1.replace(common, special)
 
+        # Succeed when no more expansion found
+
         if py0 == py1:
 
-            assert count >= 3, count
+            assert count >= 2, count
 
-            return py0
+            py1 = _scraps_.py_add_imports(py=py0, module_py=module_py)
+            assert py1 != py0, py0
 
-        py0 = py1
+            return py1
 
 
 def exit_unless_simple_tar(args):  # noqa flake8 C901 too complex (11)
@@ -390,7 +393,7 @@ def tar_list(filepath, patterns, args):  # noqa flake8 C901 too complex (32)
     """List tarred files, a la 'tar tvf'"""
 
     if patterns:
-        fnmatches = tar_fnmatches_enter(patterns)
+        fnmatches = tar_fnmatches_open(patterns)
 
     # Visit each Dir or File
 
@@ -427,7 +430,8 @@ def tar_list(filepath, patterns, args):  # noqa flake8 C901 too complex (32)
                 print(tar_member_details(member))
 
     if patterns:
-        if tar_fnmatches_exit(fnmatches):
+        misses = tar_fnmatches_close(fnmatches)
+        if misses:
             sys.exit(1)
 
 
@@ -461,7 +465,7 @@ def tar_extract(filepath, patterns, args):  # noqa flake8 C901 too complex (22)
         exists = list()
 
     if patterns:
-        fnmatches = tar_fnmatches_enter(patterns)
+        fnmatches = tar_fnmatches_open(patterns)
 
     # Walk to each file or dir found inside
 
@@ -547,7 +551,7 @@ def tar_extract(filepath, patterns, args):  # noqa flake8 C901 too complex (22)
             sys.exit(2)
 
     if patterns:
-        if tar_fnmatches_exit(fnmatches):
+        if tar_fnmatches_close(fnmatches):
             sys.exit(1)
 
     if args.dict:
@@ -558,7 +562,7 @@ def tar_extract(filepath, patterns, args):  # noqa flake8 C901 too complex (22)
         )
 
 
-def tar_fnmatches_enter(patterns):
+def tar_fnmatches_open(patterns):
     """Starting counting fnmatch'es"""
 
     fnmatches = dict()
@@ -590,7 +594,7 @@ def tar_fnmatches_find_name(fnmatches, name):
     return count
 
 
-def tar_fnmatches_exit(fnmatches):
+def tar_fnmatches_close(fnmatches):
     """Count each Pattern not found, and trace it too"""
 
     count = 0

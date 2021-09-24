@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-usage: ls.py [--help] [-C] [-1] [TOP]
+usage: ls.py [--help] [-1 | -C] [-X] [TOP]
 
 show the files and dirs inside a dir
 
@@ -10,22 +10,27 @@ positional arguments:
 
 optional arguments:
   --help  show this help message and exit
-  -C      show columns of names (default: True)
   -1      show one name per line
+  -C      show columns of names (default: True)
+  -X      sort by ext (default: by name)
 
 quirks:
   squeezes columns to left, with just two blanks between columns, like Linux
-  doesn't show columns of equal width, like Mac
+  Mac shows columns of equal width
 
 examples:
   ls.py --help  # show this help message and exit
   ls -1  # name each file or dir inside the current dir
 """
 
+# TODO:  -a  do not drop names starting with '.'
+# TODO:  -f  do not sort, and infer '-a'
+
+
 import argparse
 import os
+import pathlib
 import sys
-import textwrap
 
 import _scraps_
 
@@ -46,10 +51,15 @@ def parse_ls_args(argv):
         "top", metavar="TOP", nargs="?", help="where to start looking (default: '.')"
     )
 
-    parser.add_argument(
+    group_1C = parser.add_mutually_exclusive_group()
+    group_1C.add_argument(
+        "-1", dest="one", action="count", help="show one name per line"
+    )
+    group_1C.add_argument(
         "-C", action="count", help="show columns of names (default: True)"
     )
-    parser.add_argument("-1", dest="one", action="count", help="show one name per line")
+
+    parser.add_argument("-X", action="count", help="sort by ext (default: by name)")
 
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
@@ -64,64 +74,6 @@ def shell_to_py(argv):
     if args.help:
         return ""
 
-    top = "." if (args.top is None) else args.top
-
-    if not args.one:
-        py = shell_ls_C_to_py(top)
-    else:
-        if args.top is None:
-            py = shell_ls_1_here_to_py()
-        else:
-            py = shell_ls_1_to_py(top=args.top)
-
-    return py
-
-
-def shell_ls_1_here_to_py():
-
-    py = textwrap.dedent(
-        """
-
-        import os
-
-        names = sorted(os.listdir())  # dirs and files inside
-        for name in names:
-            if not name.startswith("."):  # if not hidden
-                print(name)
-
-        """
-    ).strip()
-
-    return py
-
-
-def shell_ls_1_to_py(top):
-
-    py = textwrap.dedent(
-        """
-
-        import os
-
-        top = $TOP
-
-        names = [top]
-        if os.path.isdir(top):
-            names = sorted(os.listdir(top))  # dirs and files inside
-
-        for name in names:
-            if not name.startswith("."):  # if not hidden
-                print(name)
-
-        """
-    ).strip()
-
-    py = py.replace("$TOP", _scraps_.as_py_value(top))
-
-    return py
-
-
-def shell_ls_C_to_py(top):
-
     # Read this sourcefile
 
     module = sys.modules[__name__]
@@ -130,25 +82,81 @@ def shell_ls_C_to_py(top):
 
     # Write the first sourcelines
 
-    py1 = textwrap.dedent(
-        """
-        ls_C($TOP)
-        """
-    ).strip()
+    if not args.one:
+        py1 = "ls_C($TOP)"
+    else:
+        py1 = "ls_1($TOP)"
+        if args.top is None:
+            py1 = "ls_1_here()"
 
-    py2 = py1.replace("$TOP", _scraps_.as_py_value(top))
+    # Form enough more sourcelines, but keep only the chosen options
 
-    # Form enough more sourcelines
+    py2 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
+    assert py2 != py1, py1
 
     py3 = _scraps_.py_pick_lines(py=py2, module_py=module_py)
-    py4 = _scraps_.py_pick_lines(py=py3, module_py=module_py)
+    # ( this 'py3' edit sometimes unneeded )
 
-    return py4
+    py4 = _scraps_.py_dedent_args(py=py3, args=args, argnames="X".split())
+    assert py4 != py3, py3
+
+    py5 = _scraps_.py_add_imports(py=py4, module_py=module_py)
+    assert py5 != py4, py4
+
+    # Emit an implicit $TOP if called with an implicit $TOP
+
+    py6 = py5
+    line = "def ls_1_here():"
+    if line in py5:
+        py6 = _scraps_.py_dedent(py5, line, truthy=True)
+        py6 = py6.replace("(top)", "()")
+        py6 = py6.replace("import os\n\n\n\n", "import os\n\n\n")
+        py6 = py6.replace("\n\n\nls_1_here()", "")
+        # TODO: less custom styling
+
+    # Inject strings, last of all
+
+    top = "." if (args.top is None) else args.top
+    py7 = py6.replace("$TOP", _scraps_.as_py_value(top))
+    # ( this 'py7' edit sometimes unneeded )
+
+    return py7
 
 
-def ls_C(path):
+def ls_1(top, args):
 
-    names = sorted(os.listdir(path))  # dirs and files
+    if args.X:
+        names = os.listdir(top)  # dirs and files inside
+        names.sort(key=lambda _: (pathlib.Path(_).suffix, _))
+
+    if not args.X:
+        names = sorted(os.listdir(top))  # dirs and files inside
+    for name in names:
+        if not name.startswith("."):  # if not hidden
+            print(name)
+
+
+def ls_1_here(args):
+    # FIXME: wrong for not os.path.isdir(top)
+
+    if not args.X:
+        names = sorted(os.listdir())  # dirs and files inside
+    if args.X:
+        names = os.listdir()  # dirs and files inside
+        names.sort(key=lambda _: (pathlib.Path(_).suffix, _))
+    for name in names:
+        if not name.startswith("."):  # if not hidden
+            print(name)
+
+
+def ls_C(top, args):
+    # FIXME: wrong for not os.path.isdir(top)
+
+    if not args.X:
+        names = sorted(os.listdir(top))  # dirs and files inside
+    if args.X:
+        names = os.listdir(top)  # dirs and files inside
+        names.sort(key=lambda _: (pathlib.Path(_).suffix, _))
     names = list(_ for _ in names if not _.startswith("."))  # if not hidden
 
     # note: 'ls -1' runs without struggling to fill a Terminal with 'join_shafts_of'

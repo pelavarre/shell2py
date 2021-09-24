@@ -98,7 +98,7 @@ examples:
 :
 :
 shell2py ls --help
-usage: ls.py [--help] [-C] [-1] [TOP]
+usage: ls.py [--help] [-1 | -C] [-X] [TOP]
 
 show the files and dirs inside a dir
 
@@ -107,12 +107,13 @@ positional arguments:
 
 optional arguments:
   --help  show this help message and exit
-  -C      show columns of names (default: True)
   -1      show one name per line
+  -C      show columns of names (default: True)
+  -X      sort by ext (default: by name)
 
 quirks:
   squeezes columns to left, with just two blanks between columns, like Linux
-  doesn't show columns of equal width, like Mac
+  Mac shows columns of equal width
 
 examples:
   ls.py --help  # show this help message and exit
@@ -120,6 +121,9 @@ examples:
 :
 shell2py ls -1
 import os
+
+
+# FIXME: wrong for not os.path.isdir()
 
 names = sorted(os.listdir())  # dirs and files inside
 for name in names:
@@ -131,14 +135,34 @@ README.md
 bin
 make.log
 :
+shell2py ls -1 .
+import os
+
+
+def ls_1(top):
+
+    names = sorted(os.listdir(top))  # dirs and files inside
+    for name in names:
+        if not name.startswith("."):  # if not hidden
+            print(name)
+
+
+ls_1(".")
+bin/ls.py -1 .
+Makefile
+README.md
+bin
+make.log
+:
 shell2py ls
 import argparse
 import os
 
 
-def ls_C(path):
+def ls_C(top):
+    # FIXME: wrong for not os.path.isdir(top)
 
-    names = sorted(os.listdir(path))  # dirs and files
+    names = sorted(os.listdir(top))  # dirs and files inside
     names = list(_ for _ in names if not _.startswith("."))  # if not hidden
 
     # note: 'ls -1' runs without struggling to fill a Terminal with 'join_shafts_of'
@@ -416,6 +440,7 @@ rm -fr file
 rm -fr file
 :
 shell2py grep.py -anw 'def|jkl|pqr'
+import os
 import re
 import sys
 
@@ -479,6 +504,9 @@ make.log
 :
 :
 shell2py tac -
+import sys
+
+
 def tac_file(file):
 
     with open(file) as reading:
@@ -972,7 +1000,7 @@ import tarfile
 def tar_list(filepath, patterns):
     """List tarred files, a la 'tar -tf dir/a'"""
 
-    fnmatches = tar_fnmatches_enter(patterns)
+    fnmatches = tar_fnmatches_open(patterns)
 
     # Visit each Dir or File
 
@@ -1003,11 +1031,12 @@ def tar_list(filepath, patterns):
             else:
                 print(name)
 
-    if tar_fnmatches_exit(fnmatches):
+    misses = tar_fnmatches_close(fnmatches)
+    if misses:
         sys.exit(1)
 
 
-def tar_fnmatches_enter(patterns):
+def tar_fnmatches_open(patterns):
     """Starting counting fnmatch'es"""
 
     fnmatches = dict()
@@ -1039,7 +1068,7 @@ def tar_fnmatches_find_name(fnmatches, name):
     return count
 
 
-def tar_fnmatches_exit(fnmatches):
+def tar_fnmatches_close(fnmatches):
     """Count each Pattern not found, and trace it too"""
 
     count = 0

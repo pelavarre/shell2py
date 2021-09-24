@@ -25,8 +25,11 @@ def b():
 #
 
 
+DENT = 4 * " "  # solve only the case of in/out/dent'ed by 4 columns
+
+
 def as_py_value(value):
-    """Convert a Value to the Python that means form an equal Value"""
+    """Emit Python that means form an equal Value"""
 
     rep = repr(value)
     if '"' not in rep:
@@ -39,23 +42,22 @@ def as_py_value(value):
 
 
 def py_pick_lines(py, module_py):
-    """Pick out enough more lines from the 'module_py' to run the 'py' well"""
+    """Insert the next deeper layer of Def's mentioned by the Py"""
+
+    # Keep the last Paragraph of Code
+    # (wrong when anchored by more, less, or different source lines)
 
     paras = split_paragraphs(py.splitlines())
-    core_py = "\n".join(paras[-1])  # TODO: more robust/ elegant
+    core_py = "\n".join(paras[-1])
 
-    # Add Defs of Mentioned Names till no more Defs found,
-    # but go wrong over Dynamic Names, Non-Ascii Names, etc
+    # Add Defs of each Name mentioned by Py
+    # (wrong for Mentions that don't mean Call Def:  Strings, Comments, etc)
 
     names = sorted(set(re.findall(r"[A-Z_a-z][0-9A-Z_a-z]*", string=py)))
     def_lines = _py_pick_def_lines(names, module_py=module_py)
     defs_py = _py_pick_defs(def_lines, module_py=module_py)
 
-    import_lines = _py_pick_import_lines(names, module_py=module_py)
-    import_py = "\n".join(import_lines)
-
-    got_py = import_py + "\n\n\n" + defs_py + "\n\n\n" + core_py
-    got_py = got_py.strip()  # such as empty 'import_py'
+    got_py = defs_py + "\n\n\n" + core_py
 
     return got_py
 
@@ -78,8 +80,8 @@ def _py_pick_defs(def_lines, module_py):
 
             outlines.append(inline)
 
-            # Copy Lines of the Body till next Outdent,
-            # but go wrong over Comments, Multi-Line Strings, etc
+            # Copy Lines of the Body till next Outdent
+            # ( wrong for Comments, Lines inside Multi-Line Strings, etc )
 
             for inline in inlines[(index + 1) :]:
                 if inline and not inline.startswith(" "):
@@ -96,7 +98,7 @@ def _py_pick_defs(def_lines, module_py):
 
 
 def _py_pick_def_lines(names, module_py):
-    """Pick top-level 'def' lines from 'module_py' that define words of 'py'"""
+    """Pick top-level Def Lines from Module-Py that match Mentions by Py"""
 
     # Pick out Top-Level Def Lines
     # but go wrong over Comments, Multi-Line Strings, etc
@@ -120,6 +122,20 @@ def _py_pick_def_lines(names, module_py):
             picked_lines.append(def_line)
 
     return picked_lines
+
+
+def py_add_imports(py, module_py):
+    """Pick Import Lines from Module-Py that match Mentions by Py"""
+
+    names = sorted(set(re.findall(r"[A-Z_a-z][0-9A-Z_a-z]*", string=py)))
+
+    import_lines = _py_pick_import_lines(names, module_py=module_py)
+    import_py = "\n".join(import_lines)
+
+    got_py = import_py + "\n\n\n" + py
+    got_py = got_py.strip()  # such as empty 'import_py'
+
+    return got_py
 
 
 def _py_pick_import_lines(names, module_py):
@@ -153,56 +169,104 @@ def _py_pick_import_lines(names, module_py):
     return picked_lines
 
 
-def py_dedent(py, ifline, as_truthy):
-    """Find the bodies of code that these 'ifline's guard, and keep or drop them"""
+def py_dedent_args(py, args, argnames):
+    """Keep or drop Code guarded by these Args, and drop all the Args"""
+
+    py1 = py
+    for argname in argnames:
+        truthy = bool(vars(args)[argname])
+        py1 = py_dedent_bool(py1, "args.{}".format(argname), truthy)
+
+    py1 = py1.replace(", args)", ")")
+    py1 = py1.replace("(args)", "()")
+
+    return py1
+
+
+def py_dedent_bool(py, name, truthy):
+    """Keep or drop Code guarded by this Name, and drop the Name if falsey"""
+
+    py1 = py
+
+    if_yes_line = "if {}:".format(name)
+    py1 = py_dedent(py1, line=if_yes_line, truthy=truthy)
+
+    if_no_line = "if not {}:".format(name)
+    py1 = py_dedent(py1, line=if_no_line, truthy=(not truthy))
+
+    if not truthy:
+        py1 = py1.replace(f", {name})", ")")
+        py1 = py1.replace(f"({name})", "()")
+
+    return py1
+
+
+def py_dedent(py, line, truthy):  # noqa C901 too complex (11)
+    """Keep or drop Code guarded by copies of this Guard Line, and drop the copies"""
+
+    # Visit each Line of Py
 
     inlines = py.splitlines()
 
     outlines = list()
     skip_index = 0
     for (index, inline) in enumerate(inlines):
+
+        # Don't revisit lines already found after finding the last Guard Line
+
         if index < skip_index:
 
             continue
 
-        if inline.strip() != ifline:
+        # Keep lines between Guard Line's
+
+        if inline.strip() != line:
 
             outlines.append(inline)
 
         else:
 
-            (if_dent, _) = str_splitdent(inline)
+            # Drop this Guard Line
 
-            skip_index = index  # TODO: work each 'inline' just once, more elegantly
+            (top_dent, _) = str_splitdent(inline)
+
+            skip_index = index
             skip_index += 1
 
-            # Copy Lines of the Body till next Outdent,
-            # but go wrong over Comments, Multi-Line Strings, etc
+            # Loop till next Outdent
 
             for (sub_index, inline) in enumerate(inlines[(index + 1) :]):
-                (dent, tail) = str_splitdent(inline)
 
-                if len(dent) <= len(if_dent):
+                (dent, tail) = str_splitdent(inline)
+                # wrong inside Multi-Line Strings, wrong for indented Comments, etc
+
+                if len(dent) <= len(top_dent):
                     if inline:
 
                         break
 
+                # Shift left by one level of indentation
+
                 outline = inline
                 if inline:
+                    assert inline.startswith(DENT + top_dent), repr(inline)
+                    outline = inline[len(DENT) :]
 
+                # Keep the Lines after the Guard Line, if Guard truthy
+                # Drop only the non-blank Lines after the Guard Line, if Guard falsey
+
+                if truthy or inline:
                     skip_index = index + 1 + sub_index + 1
+                    if truthy:
+                        outlines.append(outline)
 
-                    dent = "    "
-                    assert inline.startswith(dent + if_dent), repr(inline)
-                    outline = inline[len(dent) :]
+            # Drop the trailing blank lines if Falsey Guard
 
-                if as_truthy:
-                    outlines.append(outline)
+            if not truthy:
+                while not outlines[-1]:
+                    outlines = outlines[:-1]
 
-                continue
-
-            while not outlines[-1]:  # TODO: more clueful tie to blank lines from code
-                outlines = outlines[:-1]
+    # Return chars, not lines
 
     chars = "\n".join(outlines).strip()
 
@@ -220,7 +284,9 @@ def exec_shell_to_py(name):
     module = sys.modules[name]
     py = module_shell_to_py(module, argv=sys.argv)
 
-    exec(py, globals())
+    globals_ = dict()
+    exec(py, globals_)
+    globals().update(globals_)
 
 
 def main_argv_to_py(argv):
@@ -483,7 +549,7 @@ def shlex_join(argv):
 
     # Trust the library, if available
 
-    if hasattr(shlex, "joinx"):
+    if hasattr(shlex, "join"):
         shline = shlex.join(argv)
         return shline
 

@@ -19,7 +19,7 @@ quirks:
   chokes till you provide some explicit Target, such as the LocalHost's '.'
   accepts lots more options, as sketched by:  man scp
   secretly silently adds options as configured by:  less -FIXR ~/.ssh/config'
-  examples of 'ls --full' need 'ls.py' to work in place of Mac 'sleep 1 && ls -l'
+  demos at Mac substitute 'sleep 1 && ls -l' for 'ls --full-time'
 
 bash script to test this 'scp.py' locally or remotely:
   H=$(hostname)

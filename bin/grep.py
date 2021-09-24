@@ -108,6 +108,7 @@ def grep_a(pyregex):
 
     py = textwrap.dedent(
         """
+        import os
         import re
         import sys
 
@@ -151,6 +152,7 @@ def grep_an(pyregex):
 
     py = textwrap.dedent(
         """
+        import os
         import re
         import sys
 

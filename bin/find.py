@@ -21,10 +21,10 @@ optional arguments:
   --print              show names not pruned, when asked to '-prune -o -print'
 
 quirks:
-  Linux makes you to type '-' in place of '--' for 'find' options
-  Linux makes you to type the TOP before the '-' and '--' options
-  Mac makes you spell out 'find .', in place of 'find', to search the current dir
-  our code misunderstands:  find . -type d -name '.?*' -prune -o -print
+  gets many combinations wrong, such as:  find . -type d -name '.?*' -prune -o -print
+  Linux & Mac make you to type '-' in place of '--' for 'find' options
+  Linux * Mac make you type the TOP only before the '-' or '--' options, never after
+  Mac makes you spell out 'find .', in place of 'find', to search the Current Dir
 
 examples:
   find . -maxdepth 1 -type d  # dirs inside this dir, but not their children

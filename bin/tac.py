@@ -69,13 +69,20 @@ def shell_to_py(argv):
         """
     ).strip()
 
-    py2 = py1.replace("$FILES", _scraps_.as_py_value(files))
-
     # Form enough more sourcelines
 
-    py3 = _scraps_.py_pick_lines(py=py2, module_py=module_py)
+    py2 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
+    assert py2 != py1, py1
 
-    return py3
+    py3 = _scraps_.py_add_imports(py=py2, module_py=module_py)
+    assert py3 != py2, py2
+
+    # Inject strings, last of all
+
+    py4 = py3.replace("$FILES", _scraps_.as_py_value(files))
+    assert py4 != py3, py3
+
+    return py4
 
 
 def tac_file(file):

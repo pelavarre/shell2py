@@ -23,38 +23,51 @@ Then it says
 
 When do you care?
 
-When you know some little wrinkle in Python or Bash is on the tip of your tongue and you need it to come to you faster
+When you know some little wrinkle in Python or Bash is on the tip of your tongue and
+you need it to come to you faster
 
-Shell2Py more reminds you well of the stuff you only do now and again, not so much explains the stuff you do often
+Shell2Py more reminds you well of the stuff you only do now and again,
+not so much explains the stuff you do often
 
 Examples =>
 
 ### 1 ) How Python spells each Shell idea
 
-Shell2Py tels you how Python spells the Shell idea of reading binary Bytes out of Stdin, in place of text Chars, exactly where your knowledge of the Shell teaches you to expect to hear this story, at
+Shell2Py tels you how Python spells the Shell idea of reading binary Bytes out of Stdin,
+in place of text Chars,
+exactly where your knowledge of the Shell teaches you to expect to hear this story
 
     shell2py grep -a HelloBinaryStdin
 
 ### 2 ) How your Shell reads you
 
-Shell2Py shows you how your Shell reads you, such as does it find 1 or 2 or 3 words here
+Shell2Py shows you how your Shell reads you,
+such as does your Shell find 1 or 2 or 3 words here
 
     shell2py echo 'quotes '\''within'\'' quotes'
 
 ### 3 ) Ordinary Shell features that your Shell doesn't deliver
 
-Shell2Py gives you ordinary Shell features that your Shell doesn't deliver, as double-dash long options
-    
+Shell2Py gives you ordinary Shell features that your Shell doesn't deliver,
+as double-dash long options ported into your Shell
+
     bin/echo.py --verbose Hello 'Shell World!'
 
-In particular, you can learn the Linux Shell way or the Mac Shell way and still carry your way with you on into the other place
+In particular, you can learn the Linux Shell way or the Mac Shell way and
+still carry your way with you on into the other Shell's
 
 
 ### 4 ) Just the Help Lines that matter to you
 
-Forking Shell2Py sets you up to keep just the Help Lines that matter to you in front of you, such as our choice of a couple of dozen lines for our Man Less
+Forking Shell2Py sets you up
+to keep just the Help Lines that matter to you in front of you,
+such as our choice of just a couple of dozen lines for our Man Less
 
     bin/less.py |wc -l
 
-By contrast, your 'man less' will give you more than a thousand Help Lines to wade through, and less relevant examples
+By contrast, your 'man less' will give you
+more than a thousand Help Lines to wade through, and
+less relevant examples
 
+
+P.S. copied by: git clone https://github.com/pelavarre/shell2py.git
