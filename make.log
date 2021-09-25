@@ -98,18 +98,19 @@ examples:
 :
 :
 shell2py ls --help
-usage: ls.py [--help] [-1 | -C] [-X] [TOP]
+usage: ls.py [--help] [-1 | -C] [-X] [-a] [TOP]
 
 show the files and dirs inside a dir
 
 positional arguments:
-  TOP     where to start looking (default: '.')
+  TOP        where to start looking (default: '.')
 
 optional arguments:
-  --help  show this help message and exit
-  -1      show one name per line
-  -C      show columns of names (default: True)
-  -X      sort by ext (default: by name)
+  --help     show this help message and exit
+  -1         show one name per line
+  -C         show columns of names (default: True)
+  -X         sort by ext (default: by name)
+  -a, --all  hide no names (by showing the names that start with the '.' dot)
 
 quirks:
   squeezes columns to left, with just two blanks between columns, like Linux
@@ -122,8 +123,6 @@ examples:
 shell2py ls -1
 import os
 
-
-# FIXME: wrong for not os.path.isdir()
 
 names = sorted(os.listdir())  # dirs and files inside
 for name in names:
@@ -140,6 +139,7 @@ import os
 
 
 def ls_1(top):
+    # FIXME: wrong for not os.path.isdir(top)
 
     names = sorted(os.listdir(top))  # dirs and files inside
     for name in names:

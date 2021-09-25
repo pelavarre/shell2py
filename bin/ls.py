@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
 """
-usage: ls.py [--help] [-1 | -C] [-X] [TOP]
+usage: ls.py [--help] [-1 | -C] [-X] [-a] [TOP]
 
 show the files and dirs inside a dir
 
 positional arguments:
-  TOP     where to start looking (default: '.')
+  TOP        where to start looking (default: '.')
 
 optional arguments:
-  --help  show this help message and exit
-  -1      show one name per line
-  -C      show columns of names (default: True)
-  -X      sort by ext (default: by name)
+  --help     show this help message and exit
+  -1         show one name per line
+  -C         show columns of names (default: True)
+  -X         sort by ext (default: by name)
+  -a, --all  hide no names (by showing the names that start with the '.' dot)
 
 quirks:
   squeezes columns to left, with just two blanks between columns, like Linux
@@ -60,6 +61,12 @@ def parse_ls_args(argv):
     )
 
     parser.add_argument("-X", action="count", help="sort by ext (default: by name)")
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="count",
+        help="hide no names (by showing the names that start with the '.' dot)",
+    )
 
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
@@ -80,6 +87,8 @@ def shell_to_py(argv):
     with open(module.__file__) as incoming:
         module_py = incoming.read()
 
+    module_py = module_py.replace(":  # noqa C901 too complex\n", ":\n")
+
     # Write the first sourcelines
 
     if not args.one:
@@ -87,7 +96,7 @@ def shell_to_py(argv):
     else:
         py1 = "ls_1($TOP)"
         if args.top is None:
-            py1 = "ls_1_here()"
+            py1 = "ls_1()"
 
     # Form enough more sourcelines, but keep only the chosen options
 
@@ -97,7 +106,8 @@ def shell_to_py(argv):
     py3 = _scraps_.py_pick_lines(py=py2, module_py=module_py)
     # ( this 'py3' edit sometimes unneeded )
 
-    py4 = _scraps_.py_dedent_args(py=py3, args=args, argnames="X".split())
+    argnames = "all X".split()  # could be 'sorted(vars(args).keys())'
+    py4 = _scraps_.py_dedent_args(py=py3, args=args, argnames=argnames)
     assert py4 != py3, py3
 
     py5 = _scraps_.py_add_imports(py=py4, module_py=module_py)
@@ -106,12 +116,14 @@ def shell_to_py(argv):
     # Emit an implicit $TOP if called with an implicit $TOP
 
     py6 = py5
-    line = "def ls_1_here():"
-    if line in py5:
+    if py1 == "ls_1()":
+        line = "def ls_1(top):"
+        assert line in py5
         py6 = _scraps_.py_dedent(py5, line, truthy=True)
         py6 = py6.replace("(top)", "()")
+        py6 = py6.replace("\n\n\nls_1()", "")
+        py6 = py6.replace("# FIXME: wrong for not os.path.isdir()\n", "")
         py6 = py6.replace("import os\n\n\n\n", "import os\n\n\n")
-        py6 = py6.replace("\n\n\nls_1_here()", "")
         # TODO: less custom styling
 
     # Inject strings, last of all
@@ -122,42 +134,50 @@ def shell_to_py(argv):
 
     return py7
 
-
-def ls_1(top, args):
-
-    if args.X:
-        names = os.listdir(top)  # dirs and files inside
-        names.sort(key=lambda _: (pathlib.Path(_).suffix, _))
-
-    if not args.X:
-        names = sorted(os.listdir(top))  # dirs and files inside
-    for name in names:
-        if not name.startswith("."):  # if not hidden
-            print(name)
+    # TODO: less copy-edit between 'def ls_1' and 'def ls_C'
+    # # TODO: mark meta-comments differently and drop them
 
 
-def ls_1_here(args):
+def ls_1(top, args):  # noqa C901 too complex
     # FIXME: wrong for not os.path.isdir(top)
 
-    if not args.X:
-        names = sorted(os.listdir())  # dirs and files inside
     if args.X:
-        names = os.listdir()  # dirs and files inside
+        if args.all:
+            names = [os.curdir, os.pardir] + os.listdir(top)
+        if not args.all:
+            names = os.listdir(top)  # dirs and files inside
         names.sort(key=lambda _: (pathlib.Path(_).suffix, _))
+
+    if not args.X:
+        if args.all:
+            names = sorted([os.curdir, os.pardir] + os.listdir(top))
+        if not args.all:
+            names = sorted(os.listdir(top))  # dirs and files inside
     for name in names:
-        if not name.startswith("."):  # if not hidden
+        if args.all:
             print(name)
+        if not args.all:
+            if not name.startswith("."):  # if not hidden
+                print(name)
 
 
 def ls_C(top, args):
     # FIXME: wrong for not os.path.isdir(top)
 
-    if not args.X:
-        names = sorted(os.listdir(top))  # dirs and files inside
     if args.X:
-        names = os.listdir(top)  # dirs and files inside
+        if args.all:
+            names = [os.curdir, os.pardir] + os.listdir(top)
+        if not args.all:
+            names = os.listdir(top)  # dirs and files inside
+            names = list(_ for _ in names if not _.startswith("."))  # if not hidden
         names.sort(key=lambda _: (pathlib.Path(_).suffix, _))
-    names = list(_ for _ in names if not _.startswith("."))  # if not hidden
+
+    if not args.X:
+        if args.all:
+            names = sorted([os.curdir, os.pardir] + os.listdir(top))
+        if not args.all:
+            names = sorted(os.listdir(top))  # dirs and files inside
+            names = list(_ for _ in names if not _.startswith("."))  # if not hidden
 
     # note: 'ls -1' runs without struggling to fill a Terminal with 'join_shafts_of'
 
