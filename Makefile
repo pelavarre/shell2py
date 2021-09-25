@@ -201,9 +201,16 @@ go_ls:
 	shell2py ls -1 .
 	bin/ls.py -1 .
 	:
+	shell2py ls -1a
+	bin/ls.py -1a
+	:
 	shell2py ls
 	bin/ls.py
 	bin/ls.py bin/
+	:
+	shell2py ls -1d *
+	bin/ls.py -1d *
+	bin/ls.py *
 
 
 # test how Tac shows the lines of a file, but in reverse order

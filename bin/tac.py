@@ -71,15 +71,18 @@ def shell_to_py(argv):
 
     # Form enough more sourcelines
 
-    py2 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
+    py2 = py1
+    py2 = _scraps_.py_pick_lines(py=py2, module_py=module_py)
     assert py2 != py1, py1
 
-    py3 = _scraps_.py_add_imports(py=py2, module_py=module_py)
+    py3 = py2
+    py3 = _scraps_.py_add_imports(py=py3, module_py=module_py)
     assert py3 != py2, py2
 
     # Inject strings, last of all
 
-    py4 = py3.replace("$FILES", _scraps_.as_py_value(files))
+    py4 = py3
+    py4 = py4.replace("$FILES", _scraps_.as_py_value(files))
     assert py4 != py3, py3
 
     return py4

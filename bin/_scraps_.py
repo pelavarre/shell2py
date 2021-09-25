@@ -263,7 +263,7 @@ def py_dedent(py, line, truthy):  # noqa C901 too complex (11)
             # Drop the trailing blank lines if Falsey Guard
 
             if not truthy:
-                while not outlines[-1]:
+                while outlines and not outlines[-1]:
                     outlines = outlines[:-1]
 
     # Return chars, not lines

@@ -14,10 +14,11 @@ Then it says
 
     import os
 
-    names = sorted(os.listdir())
-    for name in names:
-        if not name.startswith("."):  # if not hidden
-            print(name)
+    names = os.listdir()
+    names = list(_ for _ in names if not _.startswith("."))
+
+    for name in sorted(names):
+        print(name)
 
 ## Motivation
 

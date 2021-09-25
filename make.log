@@ -98,23 +98,27 @@ examples:
 :
 :
 shell2py ls --help
-usage: ls.py [--help] [-1 | -C] [-X] [-a] [TOP]
+usage: ls.py [--help] [-1 | -C] [-X | -f] [-a] [-d] [TOP ...]
 
-show the files and dirs inside a dir
+show the files and dirs inside some dirs
 
 positional arguments:
-  TOP        where to start looking (default: '.')
+  TOP              a file or dir to list (default: '.')
 
 optional arguments:
-  --help     show this help message and exit
-  -1         show one name per line
-  -C         show columns of names (default: True)
-  -X         sort by ext (default: by name)
-  -a, --all  hide no names (by showing the names that start with the '.' dot)
+  --help           show this help message and exit
+  -1               show one name per line
+  -C               show columns of names (default: True)
+  -X               sort by ext (default: by name)
+  -f               do not sort
+  -a, --all        hide no names (by showing the names that start with the '.' dot)
+  -d, --directory  show the names of dirs (not the files and dirs inside)
 
 quirks:
+  quits at first top not found, unlike Linux and Mac testing all tops before quitting
   squeezes columns to left, with just two blanks between columns, like Linux
   Mac shows columns of equal width
+  writes less code when given just dirs, or just files, or just one top
 
 examples:
   ls.py --help  # show this help message and exit
@@ -123,11 +127,11 @@ examples:
 shell2py ls -1
 import os
 
+names = os.listdir()
+names = list(_ for _ in names if not _.startswith("."))
 
-names = sorted(os.listdir())  # dirs and files inside
-for name in names:
-    if not name.startswith("."):  # if not hidden
-        print(name)
+for name in sorted(names):
+    print(name)
 bin/ls.py -1
 Makefile
 README.md
@@ -138,17 +142,33 @@ shell2py ls -1 .
 import os
 
 
-def ls_1(top):
-    # FIXME: wrong for not os.path.isdir(top)
+def one_dir_ls(top):
 
-    names = sorted(os.listdir(top))  # dirs and files inside
-    for name in names:
-        if not name.startswith("."):  # if not hidden
-            print(name)
+    names = os.listdir(top)
+    names = list(_ for _ in names if not _.startswith("."))
+
+    for name in sorted(names):
+        print(name)
 
 
-ls_1(".")
+one_dir_ls(".")
 bin/ls.py -1 .
+Makefile
+README.md
+bin
+make.log
+:
+shell2py ls -1a
+import os
+
+names = list([os.curdir, os.pardir] + os.listdir())
+
+for name in sorted(names):
+    print(name)
+bin/ls.py -1a
+.
+..
+.git
 Makefile
 README.md
 bin
@@ -159,13 +179,16 @@ import argparse
 import os
 
 
-def ls_C(top):
-    # FIXME: wrong for not os.path.isdir(top)
+def one_dir_ls():
 
-    names = sorted(os.listdir(top))  # dirs and files inside
-    names = list(_ for _ in names if not _.startswith("."))  # if not hidden
+    names = os.listdir()
+    names = list(_ for _ in names if not _.startswith("."))
 
-    # note: 'ls -1' runs without struggling to fill a Terminal with 'join_shafts_of'
+    # Choose an order of names
+
+    cells = sorted(names)
+
+    # Guess the width of the Terminal
 
     tty_size = argparse.Namespace(columns=80, lines=24)  # classic Terminal
     try:
@@ -175,46 +198,49 @@ def ls_C(top):
 
     tty_columns = tty_size.columns
 
-    sep = "  "
-    chars = join_shafts_of(sep, cells=names, columns=tty_columns)
-    print(chars)
+    # Pack names into columns
+
+    chars = pack_cells_in_columns(cells, tty_columns=tty_columns, sep="  ")
+    if chars:
+        print(chars)
 
 
-def join_shafts_of(sep, cells, columns):
-    """Make as many Shafts as fit into the Columns with Sep's between them"""
+def pack_cells_in_columns(cells, tty_columns, sep):
+    """Pack Cells into Columns with Sep's between them"""
 
     strs = list(str(_) for _ in cells)
 
-    # Search for the shortest Matrix Height that fits all the Cells into the Columns
+    # Search for the shortest Matrix Height that fits Cells into the Tty Columns
 
     shafts = list()
     columns_by_x = list()
 
-    len_strs = len(strs)
-    for max_y in range(len_strs + 1):
-        assert max_y < len_strs
+    if strs:
+        len_strs = len(strs)
+        for max_y in range(len_strs + 1):
+            assert max_y < len_strs
 
-        matrix_height = max_y + 1
-        matrix_width = (len_strs + matrix_height - 1) // matrix_height
-        assert (matrix_width * matrix_height) >= len_strs
+            matrix_height = max_y + 1
+            matrix_width = (len_strs + matrix_height - 1) // matrix_height
+            assert (matrix_width * matrix_height) >= len_strs
 
-        shafts = list()
-        for x in range(matrix_width):
-            shaft = strs[(x * matrix_height) :][:matrix_height]
-            shaft = (shaft + (matrix_height * [""]))[:matrix_height]
-            shafts.append(shaft)
+            shafts = list()
+            for x in range(matrix_width):
+                shaft = strs[(x * matrix_height) :][:matrix_height]
+                shaft = (shaft + (matrix_height * [""]))[:matrix_height]
+                shafts.append(shaft)
 
-        columns_by_x = list()
-        for shaft in shafts:
-            shaft_columns = max(len(_) for _ in shaft)
-            columns_by_x.append(shaft_columns)
+            columns_by_x = list()
+            for shaft in shafts:
+                shaft_columns = max(len(_) for _ in shaft)
+                columns_by_x.append(shaft_columns)
 
-        matrix_columns = sum(columns_by_x)
-        matrix_columns += (matrix_width - 1) * len(sep)
+            matrix_columns = sum(columns_by_x)
+            matrix_columns += (matrix_width - 1) * len(sep)
 
-        if matrix_columns < columns:
+            if matrix_columns < tty_columns:
 
-            break
+                break
 
     # Join the Chars
 
@@ -233,10 +259,39 @@ def join_shafts_of(sep, cells, columns):
     return chars
 
 
-ls_C(".")
+one_dir_ls()
 bin/ls.py
 Makefile  README.md  bin  make.log
 bin/ls.py bin/
+__pycache__  dig.py   find.py  less.py  scp.py    shell2py.py  tac.py
+_scraps_.py  echo.py  grep.py  ls.py    shell2py  ssh.py       tar.py
+:
+shell2py ls -1d *
+import os
+
+
+def some_tops_ls(tops):
+
+    for top in tops:
+        _ = os.stat(top)
+    some_names_print(names=tops)
+
+
+def some_names_print(names):
+    for name in sorted(names):
+        print(name)
+
+
+some_tops_ls(["Makefile", "README.md", "bin", "make.log"])
+bin/ls.py -1d *
+Makefile
+README.md
+bin
+make.log
+bin/ls.py *
+Makefile  README.md  make.log
+
+bin:
 __pycache__  dig.py   find.py  less.py  scp.py    shell2py.py  tac.py
 _scraps_.py  echo.py  grep.py  ls.py    shell2py  ssh.py       tar.py
 :
