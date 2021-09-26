@@ -28,7 +28,7 @@ import _scraps_
 
 def main():
 
-    _scraps_.exec_shell_to_py(name=__name__)
+    _scraps_.module_name__main(__name__, argv__to_py=argv__to_tac_py)
 
 
 def parse_tac_args(argv):
@@ -46,20 +46,16 @@ def parse_tac_args(argv):
     return args
 
 
-def shell_to_py(argv):
+def argv__to_tac_py(argv):
+    """Write the Python for a Tac ArgV, else print some Help and quit"""
 
     args = parse_tac_args(argv)
+    module_py = _scraps_.module_name__readlines(__name__)
 
     files = args.files if args.files else "-".split()
     files = list(("/dev/stdin" if (_ == "-") else _) for _ in files)
 
-    # Read this sourcefile
-
-    module = sys.modules[__name__]
-    with open(module.__file__) as incoming:
-        module_py = incoming.read()
-
-    # Write the first sourcelines
+    # Write the Top Level Tac Python
 
     py1 = textwrap.dedent(
         """

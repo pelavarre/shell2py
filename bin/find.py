@@ -44,15 +44,41 @@ import _scraps_
 
 def main():
 
-    _scraps_.exec_shell_to_py(name=__name__)
+    _scraps_.module_name__main(__name__, argv__to_py=argv__to_find_py)
 
 
 def parse_find_args(argv):
+    """Convert a Find Sys ArgV to an Args Namespace, or print some Help and quit"""
 
-    as_argv = list(argv)
-    for (index, arg) in enumerate(as_argv):
+    # Open up
+
+    parser = compile_find_argdoc()
+
+    altv = list(argv)
+    for (index, arg) in enumerate(altv):
         if arg.startswith("-") and not arg.startswith("--"):
-            as_argv[index] = "-" + arg  # change to "--" from "-"
+            altv[index] = "-" + arg  # change to "--" from "-"
+
+    # Parse args
+
+    args = parser.parse_args(altv[1:])
+
+    # Close out
+
+    if args.maxdepth is not None:
+
+        try:
+            _ = int(args.maxdepth)
+        except ValueError as exc:
+            sys.stderr.write("find.py: error: argument -maxdepth: {}\n".format(exc))
+
+            sys.exit(2)
+
+    return args
+
+
+def compile_find_argdoc():
+    """Convert the Find Main Doc to an ArgParse Parser"""
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
 
@@ -111,12 +137,11 @@ def parse_find_args(argv):
 
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
-    args = parser.parse_args(as_argv[1:])
-
-    return args
+    return parser
 
 
-def shell_to_py(argv):
+def argv__to_find_py(argv):
+    """Write the Python for a Find ArgV, else print some Help and quit"""
 
     args = parse_find_args(argv)
 
@@ -263,19 +288,19 @@ def shlex_join_find(args):
 
     shline = "find"
     if args.maxdepth:
-        shline += " --maxdepth {}".format(args.maxdepth)
+        shline += " -maxdepth {}".format(args.maxdepth)
     if args.name:
-        shline += " --name {}".format(_scraps_.shlex_quote(args.name))
+        shline += " -name {}".format(_scraps_.shlex_quote(args.name))
     if args.not_:
-        shline += " --not"
+        shline += " -not"
     if args.prune:
-        shline += " --prune"
+        shline += " -prune"
     if args.o:
-        shline += " --o"
+        shline += " -o"
     if args.type:
-        shline += " --type {}".format(args.type)
+        shline += " -type {}".format(args.type)
     if args.print:
-        shline += " --print"
+        shline += " -print"
 
     return shline
 

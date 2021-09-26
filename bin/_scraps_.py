@@ -201,7 +201,7 @@ def py_dedent_bool(py, name, truthy):
     return py1
 
 
-def py_dedent(py, line, truthy):  # noqa C901 too complex (11)
+def py_dedent(py, line, truthy):  # noqa Flake8 C901 too complex (11)
     """Keep or drop Code guarded by copies of this Guard Line, and drop the copies"""
 
     # Visit each Line of Py
@@ -278,21 +278,61 @@ def py_dedent(py, line, truthy):  # noqa C901 too complex (11)
 #
 
 
-def exec_shell_to_py(name):
-    """Convert one Shell Line to Python and run it"""
+def module_name__main(name, argv__to_py, argv=sys.argv):
+    """Convert the Sys ArgV to Python from Shell, and run it"""
 
-    module = sys.modules[name]
-    py = module_shell_to_py(module, argv=sys.argv)
+    py = module_name__to_main_py(name, argv__to_py=argv__to_py, argv=argv)
 
     globals_ = dict()
     exec(py, globals_)
     globals().update(globals_)
 
 
-def main_argv_to_py(argv):
-    """Convert one Main ArgV to a Python 3 Shell False Subprocess Run of ShLine"""
+def module_name__readlines(name):
+    """Copy-edit the source lines of the module, but drop its meta-comment's"""
 
-    # Join and re-split the ArgV
+    module = sys.modules[name]
+    with open(module.__file__) as incoming:
+        py = incoming.read()
+
+    py = py.replace(":  # noqa Flake8 C901 too complex\n", ":\n")
+
+    lines = py.splitlines()
+    lines = list(_ for _ in lines if "# #" not in _)
+
+    joined_py = "\n".join(lines)
+
+    return joined_py
+
+
+def module_name__to_main_py(name, argv__to_py, argv):
+    """Write the Python for a Shell Argv, else print some Help and quit"""
+
+    module = sys.modules[name]
+    file = os.path.basename(module.__file__)  # such as 'ls.py'
+    doc = module.__doc__
+
+    func = argv__to_py
+    py = func(argv)
+
+    if py is None:
+        usage = doc.strip().splitlines()[0]
+        sys.stderr.write(usage + "\n")
+        sys.stderr.write(
+            "{}: error: argv too complex, for now "
+            "try the examples inside:  {} --help\n".format(file, file)
+        )
+        sys.exit(3)
+
+    assert py, (func, argv)
+
+    return py
+
+
+def argv__to_shline_py(argv):
+    """Write Python to trace and call this Main ArgV, else print some Help and quit"""
+
+    # Join and re-split the ArgV, else raise an unhandled Exception
 
     shline = shlex_join(argv)
 
@@ -317,31 +357,6 @@ def main_argv_to_py(argv):
     ).strip()
 
     py = py.replace("$SHLINE", as_py_value(shline))
-
-    return py
-
-
-def module_shell_to_py(module, argv):
-    """Convert one Shell Line to Python, else Print the Help for it, else Exit Loudly"""
-
-    file = os.path.basename(module.__file__)
-    doc = module.__doc__
-    func = module.shell_to_py
-
-    py = func(argv)
-
-    if py is None:
-        usage = doc.strip().splitlines()[0]
-        sys.stderr.write(usage + "\n")
-        sys.stderr.write(
-            "{}: error: need stronger translator, "
-            "meanwhile the '{} --help' examples do work\n".format(file, file)
-        )
-        sys.exit(3)
-
-    if not py:
-        print(doc.strip())
-        sys.exit(0)
 
     return py
 

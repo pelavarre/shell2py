@@ -34,24 +34,38 @@ import _scraps_
 
 
 def main():
-    _scraps_.exec_shell_to_py(name=__name__)
+    _scraps_.module_name__main(__name__, argv__to_py=argv__to_grep_py)
 
 
 def parse_grep_args(argv):
+    """Convert a Grep Sys ArgV to an Args Namespace, or print some Help and quit"""
 
-    _ = _scraps_.parse_left_help_args(argv, doc=__doc__)  # accept '--h' w/o PYREGEX
+    _ = _scraps_.parse_left_help_args(argv, doc=__doc__)  # intercept '--h' w/o PYREGEX
+
+    parser = compile_grep_argdoc()
+
+    args = parser.parse_args(argv[1:])
+    if args.help:
+        parser.print_help()
+        sys.exit(0)
+
+    return args
+
+
+def compile_grep_argdoc():
+    """Convert the Grep Main Doc to an ArgParse Parser"""
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__, drop_help=True)
+    parser.add_argument(
+        "--help", action="count", help="show this help message and exit"
+    )
 
     parser.add_argument(
         "pyregex",
         metavar="PYREGEX",
         help="regular expression pattern, in Python syntax, to find in lines of Stdin",
-    )
+    )  # required PYREGEX via default 'nargs=1', unlless '--h' intercepted earlier
 
-    parser.add_argument(
-        "--help", action="count", help="show this help message and exit"
-    )
     parser.add_argument(
         "-a",
         action="count",
@@ -67,18 +81,16 @@ def parse_grep_args(argv):
         action="count",
         help="pick only lines of reg ex as a whole word, not next to more word chars",
     )
+
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
-    args = parser.parse_args(argv[1:])
-
-    return args
+    return parser
 
 
-def shell_to_py(argv):
+def argv__to_grep_py(argv):
+    """Write the Python for a Grep ArgV, else print some Help and quit"""
 
     args = parse_grep_args(argv)
-    if args.help:
-        return ""
 
     # Reject more complex translations, but do explain why
 

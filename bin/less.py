@@ -14,6 +14,7 @@ optional arguments:
 
 quirks:
   accepts lots more options, as sketched by:  man less
+  also shows the apparent Stdout Terminal Height x Widths apart of '--help'
   secretly silently takes options from Environ $LESS, such as:  export LESS=-FIXR
   ⌃F ⌃B / etc work the same as Vim for Page Up, Page Down, Search, etc
   -I are the two chars to press to toggle between ignoring case and respecting case
@@ -32,7 +33,7 @@ import _scraps_
 
 def main():
 
-    _scraps_.exec_shell_to_py(name=__name__)
+    _scraps_.module_name__main(__name__, argv__to_py=argv__to_less_py)
 
 
 def parse_less_args(argv):
@@ -58,14 +59,15 @@ def parse_less_args(argv):
         raise
 
 
-def shell_to_py(argv):
+def argv__to_less_py(argv):
+    """Write the Python for a Less ArgV, else print some Help and quit"""
 
     parse_less_args(argv)
 
     altv = list(argv)
     altv[0] = "less"
 
-    py = _scraps_.main_argv_to_py(altv)
+    py = _scraps_.argv__to_shline_py(altv)
 
     return py
 

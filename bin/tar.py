@@ -62,7 +62,7 @@ BYTES_BY_NAME = dict()  # collect bytes of Tgz members, for the '-x --dict' mode
 
 def main():
 
-    _scraps_.exec_shell_to_py(name=__name__)
+    _scraps_.module_name__main(__name__, argv__to_py=argv__to_tar_py)
 
     if hasattr(main, "args"):
         if main.args.dict:
@@ -149,7 +149,8 @@ def parse_tar_args(argv):
     return args
 
 
-def shell_to_py(argv):
+def argv__to_tar_py(argv):
+    """Write the Python for a Tar ArgV, else print some Help and quit"""
 
     # Intercept '-h', '--h', '--he', ... '--help' as first arg,
     # before requiring all args declared
@@ -166,7 +167,7 @@ def shell_to_py(argv):
                 altv = list(argv)
                 altv[0] = "tar"
 
-                py = _scraps_.main_argv_to_py(altv)
+                py = _scraps_.argv__to_shline_py(altv)
 
                 return py
 
@@ -174,6 +175,8 @@ def shell_to_py(argv):
 
     args = parse_tar_args(argv)
     main.args = args
+
+    module_py = _scraps_.module_name__readlines(__name__)
 
     # Reject obvious contradictions
 
@@ -196,13 +199,7 @@ def shell_to_py(argv):
 
     (commons, specials) = defer_calls_to_replace(shline, args=args, patterns=patterns)
 
-    # Read this sourcefile
-
-    module = sys.modules[__name__]
-    with open(module.__file__) as incoming:
-        module_py = incoming.read()
-
-    # Write the first sourceline
+    # Write the Top Level Tar Python
 
     main_func_name = "tar_extract" if args.x else "tar_list"
 
@@ -262,7 +259,7 @@ def tar_edit_py(py, args, module_py, commons, specials):
             return py1
 
 
-def exit_unless_simple_tar(args):  # noqa flake8 C901 too complex (11)
+def exit_unless_simple_tar(args):  # noqa Flake8 C901 too complex (11)
     """Reject obvious Tar option contradictions, as if untranslatable"""
 
     for pat in args.patterns:
@@ -319,7 +316,7 @@ def shlex_join_tar(args, patterns):
     return shline
 
 
-def defer_calls_to_replace(shline, args, patterns):  # noqa flake8 C901 too complex (13)
+def defer_calls_to_replace(shline, args, patterns):  # noqa Flake8 C901 too complex (13)
     """Calculate the edits that may be required, without immediately applying them"""
 
     # FIXME: Less explicit deletes of comments before the deletes of code
@@ -380,16 +377,16 @@ def defer_calls_to_replace(shline, args, patterns):  # noqa flake8 C901 too comp
         )
         specials.append("")
 
-    commons.append("  # noqa flake8 C901 too complex (22)")
+    commons.append("  # noqa Flake8 C901 too complex (22)")
     specials.append("")
 
-    commons.append("  # noqa flake8 C901 too complex (32)")
+    commons.append("  # noqa Flake8 C901 too complex (32)")
     specials.append("")
 
     return (commons, specials)
 
 
-def tar_list(filepath, patterns, args):  # noqa flake8 C901 too complex (32)
+def tar_list(filepath, patterns, args):  # noqa Flake8 C901 too complex (32)
     """List tarred files, a la 'tar tvf'"""
 
     if patterns:
@@ -458,7 +455,7 @@ def tar_member_details(member):
     return line
 
 
-def tar_extract(filepath, patterns, args):  # noqa flake8 C901 too complex (22)
+def tar_extract(filepath, patterns, args):  # noqa Flake8 C901 too complex (22)
     """Extract tarred files, a la 'tar xvkf'"""
 
     if args.k:

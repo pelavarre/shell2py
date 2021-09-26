@@ -52,6 +52,7 @@ import tar
 def main():
 
     argv = sys.argv
+    altv = sys.argv[1:]
 
     # TODO: import just the modules needed for this run of the main args
 
@@ -68,34 +69,39 @@ def main():
     finally:
         os.chdir(with_dir)
 
+    # Quit now if the Verb not found
+
     verbs = sorted(os.path.splitext(_)[0] for _ in hits if not _.startswith("_"))
     verbs = list(_ for _ in verbs if _ != "shell2py")
     str_verbs = ", ".join(repr(_) for _ in verbs)
 
-    # Require Verb found
-
     args = parse_shell2py_args(argv)
 
-    verb = args.verb
-
-    if verb not in verbs:
+    if args.verb not in verbs:
         sys.stderr.write(
             "shell2py.py: error: "
             "argument VERB: invalid choice: {!r} (choose from {})\n".format(
-                verb, str_verbs
+                args.verb, str_verbs
             )
         )
         sys.exit(2)
 
-    # Say in Python what they said in Shell
+    # Write the Python for a Shell Argv, else print some Help and quit
 
-    module = sys.modules[verb]
-    py = _scraps_.module_shell_to_py(module, argv=argv[1:])
+    name = args.verb
+    argv__to_py_name = "argv__to_{}_py".format(name)
+    module = sys.modules[name]
+    argv__to_py = getattr(module, argv__to_py_name)
+
+    py = _scraps_.module_name__to_main_py(name, argv__to_py=argv__to_py, argv=altv)
+
+    # Print the Python formed
 
     print(py)
 
 
 def parse_shell2py_args(argv):
+    """Convert a Shell2Py Sys ArgV to an Args Namespace, or print some Help and quit"""
 
     # Print stripped doc & exit 0 if first arg is '-h', '--h', '--he', ... '--help'
 
@@ -111,19 +117,13 @@ def parse_shell2py_args(argv):
         )
         sys.exit(2)
 
-    # Strip a "bin/" prefix and/or ".py" suffix from the Verb
+    # Strip a "bin/" prefix and/or ".py.gz" suffix from the Verb
 
     verb = argv[1]
+    verb = os.path.basename(verb)  # such as "find.py" from "bin/find.py"
+    verb = verb.split(os.extsep)[0]  # such as "find" from "find.py.gz"
 
-    (dirname, basename) = os.path.split(verb)
-    if dirname == "bin":
-        verb = basename  # such as "find.py" from "bin/find.py"
-
-    (name, ext) = os.path.splitext(verb)
-    if ext == ".py":
-        verb = name  # such as "find" from "find.py"
-
-    # Return a Namespace of Parsed Args
+    # Return the Verb inside a Namespace of Parsed Args
 
     args = argparse.Namespace(verb=verb)
 

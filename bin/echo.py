@@ -30,7 +30,7 @@ import _scraps_
 
 def main():
 
-    _scraps_.exec_shell_to_py(name=__name__)
+    _scraps_.module_name__main(__name__, argv__to_py=argv__to_echo_py)
 
 
 def parse_echo_args(argv):
@@ -55,10 +55,10 @@ def parse_echo_args(argv):
     return args
 
 
-def shell_to_py(argv):
+def argv__to_echo_py(argv):
+    """Write the Python for an Echo ArgV, else print some Help and quit"""
 
     args = parse_echo_args(argv)
-
     echo_py_argv = "echo.py".split() + args.words
 
     if (args.n, args.verbose) == (None, None):

@@ -71,4 +71,8 @@ more than a thousand Help Lines to wade through, and
 less relevant examples
 
 
-P.S. copied by: git clone https://github.com/pelavarre/shell2py.git
+## Get Shell2py
+
+Copied by
+
+    git clone https://github.com/pelavarre/shell2py.git

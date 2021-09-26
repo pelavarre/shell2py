@@ -45,7 +45,7 @@ import _scraps_
 
 def main():
 
-    _scraps_.exec_shell_to_py(name=__name__)
+    _scraps_.module_name__main(__name__, argv__to_py=argv__to_scp_py)
 
 
 def parse_scp_args(argv):
@@ -53,14 +53,15 @@ def parse_scp_args(argv):
     _scraps_.parse_left_help_args(argv, doc=__doc__)
 
 
-def shell_to_py(argv):
+def argv__to_scp_py(argv):
+    """Write the Python for a Scp ArgV, else print some Help and quit"""
 
     parse_scp_args(argv)
 
     altv = list(argv)
     altv[0] = "scp"
 
-    py = _scraps_.main_argv_to_py(altv)
+    py = _scraps_.argv__to_shline_py(altv)
 
     return py
 

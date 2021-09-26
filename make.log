@@ -98,7 +98,9 @@ examples:
 :
 :
 shell2py ls --help
-usage: ls.py [--help] [-1 | -C] [-X | -f] [-a] [-d] [TOP ...]
+usage: ls.py [--help] [-1 | -l | -C] [--headings] [--full-time] [-X | -f] [-a]
+             [-d] [-F]
+             [TOP ...]
 
 show the files and dirs inside some dirs
 
@@ -108,21 +110,28 @@ positional arguments:
 optional arguments:
   --help           show this help message and exit
   -1               show one name per line
+  -l               show details of perms, links, user, group, bytes, stamp, name
   -C               show columns of names (default: True)
+  --headings       insert a row of headings before the rows of '-l' details
+  --full-time      stamp with a more precise date/time in the rows of '-l' details
   -X               sort by ext (default: by name)
   -f               do not sort
   -a, --all        hide no names (by showing the names that start with the '.' dot)
   -d, --directory  show the names of dirs (not the files and dirs inside)
+  -F, --classify   add '*/=>@' suffixes to exec, dir, socket, door, or sym
 
 quirks:
-  quits at first top not found, unlike Linux and Mac testing all tops before quitting
-  squeezes columns to left, with just two blanks between columns, like Linux
-  Mac shows columns of equal width
+  shows columns like Linux, separated by two spaces, not equal width like Mac
+  quits at first top found, doesn't show all not found like Linux or Mac
+  shows user and group as "." dot when same as $HOME
+  actually doesn't yet know how to mark socket as '=', nor door as '>'
   writes less code when given just dirs, or just files, or just one top
 
 examples:
   ls.py --help  # show this help message and exit
-  ls -1  # name each file or dir inside the current dir
+  ls -1  # show each file or dir inside the current dir
+  ls -C  # ask explicitly for the default output
+  ls *  # show each file, then show each file or dir inside each child dir
 :
 shell2py ls -1
 import os
@@ -274,10 +283,10 @@ def some_tops_ls(tops):
 
     for top in tops:
         _ = os.stat(top)
-    some_names_print(names=tops)
+    some_names_ls(names=tops)
 
 
-def some_names_print(names):
+def some_names_ls(names):
     for name in sorted(names):
         print(name)
 
@@ -352,7 +361,7 @@ shell2py find -maxdepth 1 -type d
 import os
 
 def find(top):
-    """find --maxdepth 1 --type d"""
+    """find -maxdepth 1 -type d"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
@@ -377,7 +386,7 @@ shell2py find -name '.?*'
 import os
 
 def find(top):
-    """find --name '.?*'"""
+    """find -name '.?*'"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
@@ -406,7 +415,7 @@ shell2py find -name '.?*' -prune -o -print
 import os
 
 def find(top):
-    """find --name '.?*' --prune --o --print"""
+    """find -name '.?*' -prune -o -print"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
@@ -441,7 +450,7 @@ shell2py find -type d
 import os
 
 def find(top):
-    """find --type d"""
+    """find -type d"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
@@ -469,7 +478,7 @@ shell2py find -name '.?*' -prune -o -type d -print
 import os
 
 def find(top):
-    """find --name '.?*' --prune --o --type d --print"""
+    """find -name '.?*' -prune -o -type d -print"""
 
     print(top)
     for (dirpath, dirnames, filenames) in os.walk(top):
