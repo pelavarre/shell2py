@@ -31,7 +31,7 @@ def main():
     _scraps_.module_name__main(__name__, argv__to_py=argv__to_tac_py)
 
 
-def parse_tac_args(argv):
+def compile_tac_argdoc():
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
 
@@ -39,17 +39,18 @@ def parse_tac_args(argv):
         "files", metavar="FILE", nargs="*", help="a file to copy out (default: stdin)"
     )
 
+    _scraps_.parser_patch_usage(parser, metavar="FILE", nargs="*")
+
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
-    args = parser.parse_args(argv[1:])
-
-    return args
+    return parser
 
 
 def argv__to_tac_py(argv):
     """Write the Python for a Tac ArgV, else print some Help and quit"""
 
-    args = parse_tac_args(argv)
+    parser = compile_tac_argdoc()
+    args = parser.parse_args(argv[1:])
     module_py = _scraps_.module_name__readlines(__name__)
 
     files = args.files if args.files else "-".split()

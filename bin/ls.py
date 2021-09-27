@@ -145,6 +145,8 @@ def compile_ls_argdoc():
         help="add '*/=>@' suffixes to exec, dir, socket, door, or sym",
     )
 
+    _scraps_.parser_patch_usage(parser, metavar="TOP", nargs="*")
+
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
     return parser

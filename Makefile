@@ -12,6 +12,8 @@ default: py black flake8
 	:
 	rm -fr .dotfile .dotdir/ dir/ dir.tgz file p.py
 	time make secretly 2>&1 |sed 's,  *$$,,' >make.log
+	sed -i~ "s,^> $$PWD/,," make.log
+	rm -fr make.log~
 	git diff make.log
 
 
@@ -54,7 +56,7 @@ sh:
 py:
 	:
 	:
-	echo 'for P in bin/*.py; do echo |python3 -m pdb $$P; done' |bash
+	echo 'for P in bin/*.py; do echo |python3 -m pdb $$P; done' |bash >/dev/tty
 
 
 # correct misleading placements of blanks, quotes, commas, parentheses, and such
@@ -83,26 +85,26 @@ go: go_shell2py go_ls go_echo go_find go_grep go_less go_tac go_tar
 go_shell2py:
 	:
 	:
-	shell2py || echo "+ exit $$?"
+	bin/shell2py || echo "+ exit $$?"
 	:
-	shell2py help || echo "+ exit $$?"
+	bin/shell2py help || echo "+ exit $$?"
 	:
-	shell2py -h
+	bin/shell2py -h
 	:
-	shell2py --help
+	bin/shell2py --help
 
 
 # test how Echo sees your Shell split apart the chars you're typing
 go_echo:
 	:
 	:
-	shell2py echo 'Hello, Echo World!'
+	bin/shell2py echo 'Hello, Echo World!'
 	bin/echo.py 'Hello, Echo World!'
 	:
-	shell2py echo --v 'Hello,' 'Echo World!'
+	bin/shell2py echo --v 'Hello,' 'Echo World!'
 	bin/echo.py --v 'Hello,' 'Echo World!'
 	:
-	shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
+	bin/shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
 	bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
 
 
@@ -111,22 +113,22 @@ go_find: .dotdir-and-dir
 	:
 	rm -fr file
 	:
-	shell2py find -maxdepth 1 -type d
+	bin/shell2py find -maxdepth 1 -type d
 	bin/find.py -maxdepth 1 -type d |grep i
 	:
-	shell2py find -name '.?*'
+	bin/shell2py find -name '.?*'
 	bin/find.py -name '.?*' >file
 	head -4 file
 	:
-	shell2py find -name '.?*' -prune -o -print
+	bin/shell2py find -name '.?*' -prune -o -print
 	bin/find.py -name '.?*' -prune -o -print >file
 	head -10 file
 	:
-	shell2py find -type d
+	bin/shell2py find -type d
 	bin/find.py -type d >file
 	head -10 file
 	:
-	shell2py find -name '.?*' -prune -o -type d -print
+	bin/shell2py find -name '.?*' -prune -o -type d -print
 	bin/find.py -name '.?*' -prune -o -type d -print >file
 	head -10 file
 	:
@@ -169,13 +171,13 @@ go_grep:
 	:
 	rm -fr file
 	:
-	shell2py grep.py -anw 'def|jkl|pqr'
+	bin/shell2py grep.py -anw 'def|jkl|pqr'
 	:
 	echo -n 'abc@def ghi@jklmno@pqr stu@vwx' |tr '@' '\n' >file && hexdump -C file
-	cat file |grep.py -anw 'def|jkl|pqr'
-	cat file |grep.py -aw 'def|jkl|pqr'
-	cat file |grep.py -a 'def|jkl|pqr'
-	(cat file |grep.py 'def|jkl|pqr') || echo "+ exit $$?"
+	cat file |bin/grep.py -anw 'def|jkl|pqr'
+	cat file |bin/grep.py -aw 'def|jkl|pqr'
+	cat file |bin/grep.py -a 'def|jkl|pqr'
+	(cat file |bin/grep.py 'def|jkl|pqr') || echo "+ exit $$?"
 	:
 	rm -fr file
 
@@ -184,38 +186,38 @@ go_grep:
 go_less:
 	:
 	:
-	shell2py less -FIXR
+	bin/shell2py less -FIXR
 	:
-	ls |less.py -FIXR  # hangs at screens of less than 6 lines
+	ls |bin/less.py -FIXR  # hangs at screens of less than 6 lines
 
 
 # test how Ls shows the Files and Dirs inside a Dir
 go_ls:
 	:
 	:
-	shell2py ls --help
+	bin/shell2py ls --help
 	:
-	shell2py ls Makefile
+	bin/shell2py ls Makefile
 	bin/ls.py Makefile
 	:
-	shell2py ls -1
+	bin/shell2py ls -1
 	bin/ls.py -1
 	:
-	shell2py ls -1 .
+	bin/shell2py ls -1 .
 	bin/ls.py -1 .
 	:
-	shell2py ls -1a
+	bin/shell2py ls -1a
 	bin/ls.py -1a
 	:
-	shell2py ls
+	bin/shell2py ls
 	bin/ls.py
 	bin/ls.py bin/
 	:
-	shell2py ls -1d *
+	bin/shell2py ls -1d *
 	bin/ls.py -1d *
 	bin/ls.py *
 	:
-	shell2py ls -1F *
+	bin/shell2py ls -1F *
 	bin/ls.py -1F *
 	bin/ls.py -F *
 
@@ -224,7 +226,7 @@ go_ls:
 go_tac:
 	:
 	:
-	shell2py tac -
+	bin/shell2py tac -
 	bash -c 'echo A; echo B; echo C; echo -n Z' |bin/tac.py -
 	:
 
@@ -253,27 +255,27 @@ go_tar_walk: dir.tgz
 
 	:
 	:
-	shell2py tar tvf dir.tgz
+	bin/shell2py tar tvf dir.tgz
 	bin/tar.py tvf dir.tgz |sed 's,202.-..-.. ..:..,2021-09-11 11:30,'
 	:
-	shell2py tar xvkf dir.tgz
+	bin/shell2py tar xvkf dir.tgz
 	rm -fr dir/
 	bin/tar.py xvkf dir.tgz
 	bin/tar.py xvkf dir.tgz || echo "+ exit $$?"
 	:
-	shell2py tar xvf dir.tgz
+	bin/shell2py tar xvf dir.tgz
 	bin/tar.py xvf dir.tgz
 	:
 	:
-	shell2py tar tf dir.tgz
+	bin/shell2py tar tf dir.tgz
 	bin/tar.py tf dir.tgz
 	:
-	shell2py tar xkf dir.tgz
+	bin/shell2py tar xkf dir.tgz
 	rm -fr dir/
 	bin/tar.py xkf dir.tgz
 	bin/tar.py xkf dir.tgz || echo "+ exit $$?"
 	:
-	shell2py tar xf dir.tgz
+	bin/shell2py tar xf dir.tgz
 	bin/tar.py xf dir.tgz
 
 
@@ -283,14 +285,14 @@ go_tar_pick: dir.tgz
 	:
 	rm -fr p.py
 	:
-	shell2py tar tf dir.tgz dir/a
+	bin/shell2py tar tf dir.tgz dir/a
 	bin/tar.py tf dir.tgz dir/a
 	:
-	shell2py tar tf dir.tgz dir dir/a// dir >p.py
+	bin/shell2py tar tf dir.tgz dir dir/a// dir >p.py
 	tail -2 p.py
 	bin/tar.py tf dir.tgz dir dir/a/b/d/// dir
 	:
-	shell2py tar xf dir.tgz -O 'dir/a/*/?' >p.py
+	bin/shell2py tar xf dir.tgz -O 'dir/a/*/?' >p.py
 	tail -2 p.py
 	bin/tar.py xf dir.tgz -O 'dir/a/*/?'
 

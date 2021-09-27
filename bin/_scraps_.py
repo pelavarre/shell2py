@@ -561,6 +561,31 @@ def parse_left_help_args(argv, doc):
             sys.exit(0)
 
 
+# deffed in many files  # missing from docs.python.org
+def parser_patch_usage(parser, metavar, nargs):
+    """Convert to future Usage syntax now"""  # as if:  from __future__ import argparse
+
+    prefix = "usage: "
+    old_suffix = " [{} [{} ...]]".format(metavar, metavar)
+    new_suffix = " [{} ...]".format(metavar)
+
+    marked_usage = parser.format_usage()
+    if nargs == "*":
+        if marked_usage.startswith(prefix):
+            if marked_usage.endswith(old_suffix + "\n"):
+
+                usage = marked_usage
+                usage = usage[len(prefix) :]
+                usage = usage[: -len(old_suffix + "\n")] + new_suffix
+
+                parser.usage = usage
+
+                got_marked = parser.format_usage()
+                want_marked = prefix + usage + "\n"
+
+                assert got_marked == want_marked, (got_marked, want_marked)
+
+
 # deffed in many files  # missing from docs.python.org till Oct/2019 Python 3.8
 def shlex_join(argv):
     """Undo shlex.split"""

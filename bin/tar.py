@@ -69,13 +69,7 @@ def main():
             BYTES_BY_NAME.update(_scraps_.BYTES_BY_NAME)
 
 
-def parse_tar_args(argv):
-
-    as_argv = list(argv)
-    if as_argv[1:]:
-        flags = as_argv[1]
-        if re.match(r"^[txvkf]+$", string=flags):
-            as_argv[1] = "-" + flags
+def compile_tar_argdoc():
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
 
@@ -142,11 +136,11 @@ def parse_tar_args(argv):
         help="extract to a Python Dict, not to where the files came from",
     )
 
+    _scraps_.parser_patch_usage(parser, metavar="PATTERN", nargs="*")
+
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
-    args = parser.parse_args(as_argv[1:])
-
-    return args
+    return parser
 
 
 def argv__to_tar_py(argv):
@@ -173,7 +167,14 @@ def argv__to_tar_py(argv):
 
     # Else fallback to parse the command line as per top-of-file Docstring
 
-    args = parse_tar_args(argv)
+    altv = list(argv)
+    if altv[1:]:
+        flags = altv[1]
+        if re.match(r"^[txvkf]+$", string=flags):
+            altv[1] = "-" + flags
+
+    parser = compile_tar_argdoc()
+    args = parser.parse_args(altv[1:])
     main.args = args
 
     module_py = _scraps_.module_name__readlines(__name__)

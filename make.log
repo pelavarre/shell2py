@@ -1,42 +1,6 @@
 :
 :
-echo 'for P in bin/*.py; do echo |python3 -m pdb $P; done' |bash
-> /Users/plavarre/Public/shell2py/bin/_scraps_.py(1)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/dig.py(3)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/echo.py(3)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/find.py(3)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/grep.py(3)<module>()
--> r"""
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/less.py(3)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/ls.py(3)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/scp.py(3)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/shell2py.py(3)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/ssh.py(3)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/tac.py(3)<module>()
--> """
-(Pdb) (Pdb)
-> /Users/plavarre/Public/shell2py/bin/tar.py(3)<module>()
--> """
-(Pdb) (Pdb)
+echo 'for P in bin/*.py; do echo |python3 -m pdb $P; done' |bash >/dev/tty
 :
 :
 ~/.venvs/pips/bin/black bin/*.py
@@ -47,16 +11,16 @@ All done! ✨ 🍰 ✨
 ~/.venvs/pips/bin/flake8 --max-line-length=999 --max-complexity 10 --ignore=E203,W503 bin/*.py
 :
 :
-shell2py || echo "+ exit $?"
+bin/shell2py || echo "+ exit $?"
 usage: shell2py.py [-h] VERB [WORD [WORD ...]]
 shell2py.py: error: the following arguments are required: VERB
 + exit 2
 :
-shell2py help || echo "+ exit $?"
+bin/shell2py help || echo "+ exit $?"
 shell2py.py: error: argument VERB: invalid choice: 'help' (choose from 'dig', 'echo', 'find', 'grep', 'less', 'ls', 'scp', 'ssh', 'tac', 'tar')
 + exit 2
 :
-shell2py -h
+bin/shell2py -h
 usage: shell2py.py [-h] VERB [WORD [WORD ...]]
 
 say in Python what you said in Shell
@@ -76,7 +40,7 @@ examples:
   shell2py echo a 'b c'  # show how your Shell splits apart the chars you're typing
   ls bin/*  # show the verbs of Bash that this revision of Shell2Py will explain
 :
-shell2py --help
+bin/shell2py --help
 usage: shell2py.py [-h] VERB [WORD [WORD ...]]
 
 say in Python what you said in Shell
@@ -97,7 +61,7 @@ examples:
   ls bin/*  # show the verbs of Bash that this revision of Shell2Py will explain
 :
 :
-shell2py ls --help
+bin/shell2py ls --help
 usage: ls.py [--help] [-1 | -l | -C] [--headings] [--full-time] [-X | -f] [-a]
              [-d] [-F]
              [TOP ...]
@@ -133,7 +97,7 @@ examples:
   ls -C  # ask explicitly for the default output
   ls *  # show each file, then show each file or dir inside each child dir
 :
-shell2py ls Makefile
+bin/shell2py ls Makefile
 import os
 
 
@@ -147,7 +111,7 @@ one_name_ls("Makefile")
 bin/ls.py Makefile
 Makefile
 :
-shell2py ls -1
+bin/shell2py ls -1
 import os
 
 names = os.listdir()
@@ -161,7 +125,7 @@ README.md
 bin
 make.log
 :
-shell2py ls -1 .
+bin/shell2py ls -1 .
 import os
 
 
@@ -181,7 +145,7 @@ README.md
 bin
 make.log
 :
-shell2py ls -1a
+bin/shell2py ls -1a
 import os
 
 names = list([os.curdir, os.pardir] + os.listdir())
@@ -197,7 +161,7 @@ README.md
 bin
 make.log
 :
-shell2py ls
+bin/shell2py ls
 import argparse
 import os
 
@@ -289,7 +253,7 @@ bin/ls.py bin/
 __pycache__  dig.py   find.py  less.py  scp.py    shell2py.py  tac.py
 _scraps_.py  echo.py  grep.py  ls.py    shell2py  ssh.py       tar.py
 :
-shell2py ls -1d *
+bin/shell2py ls -1d *
 import os
 
 
@@ -318,7 +282,7 @@ bin:
 __pycache__  dig.py   find.py  less.py  scp.py    shell2py.py  tac.py
 _scraps_.py  echo.py  grep.py  ls.py    shell2py  ssh.py       tar.py
 :
-shell2py ls -1F *
+bin/shell2py ls -1F *
 import os
 import stat
 
@@ -402,7 +366,7 @@ __pycache__/  dig.py*   find.py*  less.py*  scp.py*    shell2py.py*  tac.py*
 _scraps_.py   echo.py*  grep.py*  ls.py*    shell2py*  ssh.py*       tar.py*
 :
 :
-shell2py echo 'Hello, Echo World!'
+bin/shell2py echo 'Hello, Echo World!'
 import sys
 
 # echo.py 'Hello, Echo World!'
@@ -414,7 +378,7 @@ sys.stdout.flush()  # unneeded if exiting now
 bin/echo.py 'Hello, Echo World!'
 Hello, Echo World!
 :
-shell2py echo --v 'Hello,' 'Echo World!'
+bin/shell2py echo --v 'Hello,' 'Echo World!'
 import sys
 
 # echo.py Hello, 'Echo World!'
@@ -427,7 +391,7 @@ bin/echo.py --v 'Hello,' 'Echo World!'
 1: 'Hello,'
 2: 'Echo World!'
 :
-shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
+bin/shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
 import sys
 
 # echo.py '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
@@ -454,7 +418,7 @@ touch dir/dir-child
 :
 rm -fr file
 :
-shell2py find -maxdepth 1 -type d
+bin/shell2py find -maxdepth 1 -type d
 import os
 
 def find(top):
@@ -479,7 +443,7 @@ bin/find.py -maxdepth 1 -type d |grep i
 ./bin
 ./dir
 :
-shell2py find -name '.?*'
+bin/shell2py find -name '.?*'
 import os
 
 def find(top):
@@ -508,7 +472,7 @@ head -4 file
 ./.git
 ./.dotdir/.dotdir-dotchild
 :
-shell2py find -name '.?*' -prune -o -print
+bin/shell2py find -name '.?*' -prune -o -print
 import os
 
 def find(top):
@@ -543,7 +507,7 @@ head -10 file
 ./bin/_scraps_.py
 ./bin/dig.py
 :
-shell2py find -type d
+bin/shell2py find -type d
 import os
 
 def find(top):
@@ -571,7 +535,7 @@ head -10 file
 ./.git/objects
 ./.git/refs
 :
-shell2py find -name '.?*' -prune -o -type d -print
+bin/shell2py find -name '.?*' -prune -o -type d -print
 import os
 
 def find(top):
@@ -600,7 +564,7 @@ rm -fr file
 :
 rm -fr file
 :
-shell2py grep.py -anw 'def|jkl|pqr'
+bin/shell2py grep.py -anw 'def|jkl|pqr'
 import os
 import re
 import sys
@@ -627,24 +591,24 @@ echo -n 'abc@def ghi@jklmno@pqr stu@vwx' |tr '@' '\n' >file && hexdump -C file
 00000000  61 62 63 0a 64 65 66 20  67 68 69 0a 6a 6b 6c 6d  |abc.def ghi.jklm|
 00000010  6e 6f 0a 70 71 72 20 73  74 75 0a 76 77 78        |no.pqr stu.vwx|
 0000001e
-cat file |grep.py -anw 'def|jkl|pqr'
+cat file |bin/grep.py -anw 'def|jkl|pqr'
 2:def ghi
 4:pqr stu
-cat file |grep.py -aw 'def|jkl|pqr'
+cat file |bin/grep.py -aw 'def|jkl|pqr'
 def ghi
 pqr stu
-cat file |grep.py -a 'def|jkl|pqr'
+cat file |bin/grep.py -a 'def|jkl|pqr'
 def ghi
 jklmno
 pqr stu
-(cat file |grep.py 'def|jkl|pqr') || echo "+ exit $?"
+(cat file |bin/grep.py 'def|jkl|pqr') || echo "+ exit $?"
 grep.py: error: choose argument -a
 + exit 2
 :
 rm -fr file
 :
 :
-shell2py less -FIXR
+bin/shell2py less -FIXR
 import shlex
 import subprocess
 import sys
@@ -656,7 +620,7 @@ if run.returncode:
     sys.stderr.write("+ exit {}\n".format(run.returncode))
     sys.exit(run.returncode)
 :
-ls |less.py -FIXR  # hangs at screens of less than 6 lines
+ls |bin/less.py -FIXR  # hangs at screens of less than 6 lines
 Makefile
 README.md
 bin
@@ -664,7 +628,7 @@ dir
 make.log
 :
 :
-shell2py tac -
+bin/shell2py tac -
 import sys
 
 
@@ -703,7 +667,7 @@ echo goodbye > dir/a/b/e
 bin/tar.py czf dir.tgz dir/
 :
 :
-shell2py tar tvf dir.tgz
+bin/shell2py tar tvf dir.tgz
 import datetime as dt
 import os
 import tarfile
@@ -769,7 +733,7 @@ drwxrwxrwx .../... . 2021-09-11 11:30 dir/a/b/c/
 -rwxrwxrwx .../... 6 2021-09-11 11:30 dir/a/b/d
 -rwxrwxrwx .../... 8 2021-09-11 11:30 dir/a/b/e
 :
-shell2py tar xvkf dir.tgz
+bin/shell2py tar xvkf dir.tgz
 import os
 import sys
 import tarfile
@@ -879,7 +843,7 @@ tar.py: dir/a/b/e: Cannot open: File exists
 tar: Exiting with failure status due to previous errors
 + exit 2
 :
-shell2py tar xvf dir.tgz
+bin/shell2py tar xvf dir.tgz
 import os
 import sys
 import tarfile
@@ -959,7 +923,7 @@ dir/a/b/d
 dir/a/b/e
 :
 :
-shell2py tar tf dir.tgz
+bin/shell2py tar tf dir.tgz
 import os
 import tarfile
 
@@ -1004,7 +968,7 @@ dir/a/b/c/
 dir/a/b/d
 dir/a/b/e
 :
-shell2py tar xkf dir.tgz
+bin/shell2py tar xkf dir.tgz
 import os
 import sys
 import tarfile
@@ -1093,7 +1057,7 @@ tar.py: dir/a/b/e: Cannot open: File exists
 tar: Exiting with failure status due to previous errors
 + exit 2
 :
-shell2py tar xf dir.tgz
+bin/shell2py tar xf dir.tgz
 import os
 import tarfile
 
@@ -1151,7 +1115,7 @@ bin/tar.py xf dir.tgz
 :
 rm -fr p.py
 :
-shell2py tar tf dir.tgz dir/a
+bin/shell2py tar tf dir.tgz dir/a
 import fnmatch
 import os
 import sys
@@ -1262,7 +1226,7 @@ dir/a/b/c/
 dir/a/b/d
 dir/a/b/e
 :
-shell2py tar tf dir.tgz dir dir/a// dir >p.py
+bin/shell2py tar tf dir.tgz dir dir/a// dir >p.py
 tail -2 p.py
 
 tar_list("dir.tgz", patterns=["dir", "dir/a", "dir"])
@@ -1277,7 +1241,7 @@ dir/a/b/c/
 dir/a/b/d
 dir/a/b/e
 :
-shell2py tar xf dir.tgz -O 'dir/a/*/?' >p.py
+bin/shell2py tar xf dir.tgz -O 'dir/a/*/?' >p.py
 tail -2 p.py
 
 tar_extract("dir.tgz", patterns=["dir/a/*/?"])

@@ -33,7 +33,8 @@ def main():
     _scraps_.module_name__main(__name__, argv__to_py=argv__to_echo_py)
 
 
-def parse_echo_args(argv):
+def compile_echo_argdoc():
+    """Convert the Echo Main Doc to an ArgParse Parser"""
 
     parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
 
@@ -48,17 +49,19 @@ def parse_echo_args(argv):
     parser.add_argument("words", metavar="WORD", nargs="*", help="a word to show")
     # TODO: distribute wise choice of 'nargs="..."' vs 'nargs="*"'
 
+    _scraps_.parser_patch_usage(parser, metavar="WORD", nargs="*")
+
     _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
 
-    args = parser.parse_args(argv[1:])
-
-    return args
+    return parser
 
 
 def argv__to_echo_py(argv):
     """Write the Python for an Echo ArgV, else print some Help and quit"""
 
-    args = parse_echo_args(argv)
+    parser = compile_echo_argdoc()
+    args = parser.parse_args(argv[1:])
+
     echo_py_argv = "echo.py".split() + args.words
 
     if (args.n, args.verbose) == (None, None):
