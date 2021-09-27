@@ -42,8 +42,11 @@ examples:
 
 
 import argparse
+import datetime as dt
+import grp
 import os
 import pathlib
+import pwd
 import stat
 import sys
 
@@ -218,13 +221,10 @@ def argv__to_ls_py(argv):
 
     args = parse_ls_args(argv)
 
-    # Don't yet translate Usage: '[-l] [--headings] [--full-time]'
+    # Don't yet translate Usage: '[--headings] [--full-time]'
 
-    if args.long_rows:
+    if args.headings or args.full_time:
         return
-
-    assert not args.headings
-    assert not args.full_time
 
     # Write the Source
 
@@ -364,7 +364,7 @@ def args__to_whole_ls_py(args, py1, calling):
 
     if py1 == "one_dir_ls()":
 
-        if args.tall_columns:
+        if not args.cells:
             py7 = py7.replace("(top)", "()")
         else:
             def_one_dir = "def one_dir_ls(top):"
@@ -449,10 +449,10 @@ def reduce_ls_py_stats_to_names(py, module_py):
 +
 -                 some_stats_ls(stats=topdir_sub_stats)
 +                 some_names_ls(names)
--         top_item = (top, os.stat(top))
-+         _ = os.stat(top)
--         stats_item_print(top_item, args=args)
-+         print(top)
+-             top_item = (top, os.stat(top))
++             _ = os.stat(top)
+-             stats_item_print(top_item, args=args)
++             print(top)
 -         sub_stats = {_: os.stat(os.path.join(top, _)) for _ in names}
 +
 -         some_stats_ls(stats=sub_stats)
@@ -487,10 +487,10 @@ def reduce_ls_py_stats_to_names(py, module_py):
 +
 - def one_stat_ls(name, args):
 + def one_name_ls(name, args):
--     item = (name, os.stat(name))
-+     _ = os.stat(name)
--     stats_item_print(item, args=args)
-+     print(name)
+-         item = (name, os.stat(name))
++         _ = os.stat(name)
+-         stats_item_print(item, args=args)
++         print(name)
     """
 
     difflines = diffs.splitlines()
@@ -608,8 +608,18 @@ def one_dir_ls(top, args):
 
     if args.directory:
 
-        top_item = (top, os.stat(top))
-        stats_item_print(top_item, args=args)
+        if not args.long_rows:
+
+            top_item = (top, os.stat(top))
+            stats_item_print(top_item, args=args)
+
+        if args.long_rows:
+
+            print("total .")  # TODO: count blocks of 512B each
+
+            top_item = (top, os.stat(top))
+            row = stats_item_row(top_item, args=args)
+            print("  ".join(row))
 
     if not args.directory:
 
@@ -640,6 +650,31 @@ def some_stats_ls(stats, args):  # noqa Flake8 C901 too complex
             if not args.X:
                 for item in sorted(stats.items()):
                     stats_item_print(item, args=args)
+
+    if args.long_rows:
+
+        print("total .")  # TODO: count blocks of 512B each
+
+        rows = list()
+        if args.f:
+            for item in stats.items():
+                row = stats_item_row(item, args=args)
+                rows.append(row)
+        if args.X:
+            items = sorted(
+                stats.items(), key=lambda _: (pathlib.Path(_[0]).suffix, _[0])
+            )
+            for item in items:
+                row = stats_item_row(item, args=args)
+                rows.append(row)
+        if not args.f:
+            if not args.X:
+                for item in sorted(stats.items()):
+                    row = stats_item_row(item, args=args)
+                    rows.append(row)
+
+        chars = format_rows_as_columns(rows)
+        print(chars)
 
     if args.tall_columns:
 
@@ -678,25 +713,79 @@ def some_stats_ls(stats, args):  # noqa Flake8 C901 too complex
 
 def one_stat_ls(name, args):
 
-    item = (name, os.stat(name))
-    stats_item_print(item, args=args)
+    if not args.long_rows:
+
+        item = (name, os.stat(name))
+        stats_item_print(item, args=args)
+
+    if args.long_rows:
+
+        print("total .")  # TODO: count blocks of 512B each
+
+        item = (name, os.stat(name))
+        row = stats_item_row(item, args=args)
+        print("  ".join(row))
 
 
 def stats_item_print(item, args):
 
     if not args.classify:
-        if not args.args.long_rows:
 
-            assert False
+        assert False
 
-    marked_name = item[0]
-    if args.classify:
-        marked_name = stats_item_format(item, args=args)
     if not args.long_rows:
+
+        if not args.classify:
+            marked_name = item[0]
+        if args.classify:
+            marked_name = stats_item_format(item, args=args)
         print(marked_name)
 
     if args.long_rows:
+
         assert False
+
+
+def stats_item_row(item, args):
+
+    (item_name, item_stat) = item
+
+    st_mode = item_stat.st_mode
+    filemode = stat.filemode(st_mode)
+    islnk = stat.S_ISLNK(st_mode)
+    _ = islnk  # FIXME
+
+    links = str(item_stat.st_nlink)
+
+    gid_uid = (os.getgid(), os.getuid())
+
+    st_gid = item_stat.st_gid
+    st_uid = item_stat.st_uid
+    st_gid_uid = (st_gid, st_uid)
+
+    user_name = pwd.getpwuid(st_uid).pw_name
+    user = "." if (st_gid_uid == gid_uid) else user_name
+
+    group_name = grp.getgrgid(st_gid).gr_name
+    group = "." if (st_gid_uid == gid_uid) else group_name
+
+    st_mtime = item_stat.st_mtime
+    item_datetime = dt.datetime.fromtimestamp(st_mtime)
+
+    len_bytes = "." if filemode.startswith("d") else str(item_stat.st_size)
+    stamp = item_datetime.strftime("%h %d %H:%M")
+    if item_datetime.year != dt.datetime.now().year:
+        stamp = item_datetime.strftime("%h %d %Y")
+        # TODO: "%h %d %Y" for more than 6 months away
+
+    if not args.classify:
+        marked_name = item[0]
+    if args.classify:
+        marked_name = stats_item_format(item, args=args)
+
+    row = (filemode, links, user, group, len_bytes, stamp, marked_name)
+
+    return row
 
 
 def stats_item_format(item, args):
@@ -705,7 +794,6 @@ def stats_item_format(item, args):
         assert False
 
     (item_name, item_stat) = item
-
     st_mode = item_stat.st_mode
 
     filemode = stat.filemode(st_mode)
@@ -718,13 +806,43 @@ def stats_item_format(item, args):
         elif "x" in filemode:
             mark = "*"
         elif islnk:
-            mark = "@"
+            mark = "@"  # TODO: pass tests of this
         else:
             mark = ""  # wrong mark when it should be socket as '=', or door as '>'
 
     marked_name = item_name + mark
 
     return marked_name
+
+
+def format_rows_as_columns(rows):
+    """Format Rows of Cells as Vertically Aligned Columns of Cells"""
+
+    justs = (
+        str.ljust,
+        str.rjust,
+        str.ljust,
+        str.ljust,
+        str.rjust,
+        str.ljust,
+        str.ljust,
+    )
+    # justs for (filemode, links, user, group, len_bytes, stamp, marked_naem)
+
+    columns = list(zip(*rows))
+    widths = list(max(len(_) for _ in c) for c in columns)
+
+    assert len(columns) == len(widths) == len(justs)
+
+    padded_columns = list()
+    for (column, just, width) in zip(columns, justs, widths):
+        padded_column = list(just(_, width) for _ in column)
+        padded_columns.append(padded_column)
+
+    padded_rows = list(zip(*padded_columns))
+    chars = "\n".join("  ".join(_).rstrip() for _ in padded_rows)
+
+    return chars
 
 
 def pack_cells_in_columns(cells, tty_columns, sep):

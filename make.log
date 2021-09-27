@@ -347,7 +347,6 @@ def some_stats_ls(stats):
 
 def stats_item_print(item):
 
-    marked_name = item[0]
     marked_name = stats_item_format(item)
     print(marked_name)
 
@@ -355,7 +354,6 @@ def stats_item_print(item):
 def stats_item_format(item):
 
     (item_name, item_stat) = item
-
     st_mode = item_stat.st_mode
 
     filemode = stat.filemode(st_mode)
@@ -366,7 +364,7 @@ def stats_item_format(item):
     elif "x" in filemode:
         mark = "*"
     elif islnk:
-        mark = "@"
+        mark = "@"  # TODO: pass tests of this
     else:
         mark = ""  # wrong mark when it should be socket as '=', or door as '>'
 
