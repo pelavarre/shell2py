@@ -318,6 +318,91 @@ bin:
 __pycache__  dig.py   find.py  less.py  scp.py    shell2py.py  tac.py
 _scraps_.py  echo.py  grep.py  ls.py    shell2py  ssh.py       tar.py
 :
+shell2py ls -1F *
+import os
+import stat
+
+
+def some_tops_ls(topfiles, topdirs):
+
+    topfiles_stats = dict()
+    for topfile in topfiles:
+        topfiles_stats[topfile] = os.stat(topfile)
+    some_stats_ls(stats=topfiles_stats)
+
+    for (index, topdir) in enumerate(topdirs):
+        print()
+        print("{}:".format(topdir))
+        names = os.listdir(topdir)
+        names = list(_ for _ in names if not _.startswith("."))
+
+        topdir_sub_stats = {_: os.stat(os.path.join(topdir, _)) for _ in names}
+        some_stats_ls(stats=topdir_sub_stats)
+
+
+def some_stats_ls(stats):
+    for item in sorted(stats.items()):
+        stats_item_print(item)
+
+
+def stats_item_print(item):
+
+    marked_name = item[0]
+    marked_name = stats_item_format(item)
+    print(marked_name)
+
+
+def stats_item_format(item):
+
+    (item_name, item_stat) = item
+
+    st_mode = item_stat.st_mode
+
+    filemode = stat.filemode(st_mode)
+    islnk = stat.S_ISLNK(st_mode)
+
+    if filemode.startswith("d"):
+        mark = "/"
+    elif "x" in filemode:
+        mark = "*"
+    elif islnk:
+        mark = "@"
+    else:
+        mark = ""  # wrong mark when it should be socket as '=', or door as '>'
+
+    marked_name = item_name + mark
+
+    return marked_name
+
+
+some_tops_ls(["Makefile", "README.md", "make.log"], topdirs=["bin"])
+bin/ls.py -1F *
+Makefile
+README.md
+make.log
+
+bin:
+__pycache__/
+_scraps_.py
+dig.py*
+echo.py*
+find.py*
+grep.py*
+less.py*
+ls.py*
+scp.py*
+shell2py*
+shell2py.py*
+ssh.py*
+tac.py*
+tar.py*
+bin/ls.py -F *
+Makefile  README.md  make.log
+
+bin:
+__pycache__/  dig.py*   find.py*  less.py*  scp.py*    shell2py.py*  tac.py*
+_scraps_.py   echo.py*  grep.py*  ls.py*    shell2py*  ssh.py*       tar.py*
+:
 :
 shell2py echo 'Hello, Echo World!'
 import sys

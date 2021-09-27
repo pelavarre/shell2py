@@ -44,6 +44,7 @@ examples:
 import argparse
 import os
 import pathlib
+import stat
 import sys
 
 import _scraps_
@@ -217,9 +218,9 @@ def argv__to_ls_py(argv):
 
     args = parse_ls_args(argv)
 
-    # Don't yet translate Usage: '[-l] [--headings] [--full-time] [-F]'
+    # Don't yet translate Usage: '[-l] [--headings] [--full-time]'
 
-    if args.long_rows or args.classify:
+    if args.long_rows:
         return
 
     assert not args.headings
@@ -308,7 +309,7 @@ def args__to_whole_ls_py(args, py1, calling):
     py4 = edit_ls_py(py=py4, args=args, argnames=argnames, module_py=module_py)
 
     py5 = py4
-    py5 = _scraps_.py_add_imports(py=py5, module_py=module_py)
+    py5 = edit_ls_py(py=py5, args=args, argnames=argnames, module_py=module_py)
 
     # Expand a single call of 'def some_names_ls' inline
 
@@ -329,6 +330,8 @@ def args__to_whole_ls_py(args, py1, calling):
     if not args.classify and not args.long_rows:
 
         py7 = reduce_ls_py_stats_to_names(py=py7, module_py=module_py)
+
+    py7 = py7.replace(", args=args)", ")")
 
     if (not args.topfiles) or (not args.topdirs):
 
@@ -371,7 +374,23 @@ def args__to_whole_ls_py(args, py1, calling):
             py7 = py7.replace("(top)", "()")
             py7 = py7.replace("os.stat(os.path.join(top, name))", "os.stat(name)")
             py7 = py7.replace("\n\n\none_dir_ls()", "")
-            # TODO: less custom styling
+
+        py7 = py7.replace(
+            "sub_stats = {_: os.stat(os.path.join(top, _)) for _ in names}",
+            "sub_stats = {_: os.stat(_) for _ in names}",
+        )
+
+        # TODO: less custom styling
+
+    py7 = py7.replace(calling_to, calling_as_if)
+
+    py7 = _scraps_.py_add_imports(py=py7, module_py=module_py)
+
+    py7 = py7.replace("\n\n\nnames = os.listdir()\n", "\n\nnames = os.listdir()\n")
+    py7 = py7.replace(
+        "\n\n\nnames = list([os.curdir, os.pardir] + os.listdir())\n",
+        "\n\nnames = list([os.curdir, os.pardir] + os.listdir())\n",
+    )
 
     # Inject strings, last of all
 
@@ -384,8 +403,6 @@ def args__to_whole_ls_py(args, py1, calling):
     py8 = py8.replace("$TOPDIRS", _scraps_.as_py_value(args.topdirs))
     py8 = py8.replace("$TOPS", _scraps_.as_py_value(args.some_tops))
     py8 = py8.replace("$TOP", _scraps_.as_py_value(args.last_top))
-
-    py8 = py8.replace(calling_to, calling_as_if)
 
     return py8
 
@@ -434,7 +451,7 @@ def reduce_ls_py_stats_to_names(py, module_py):
 +                 some_names_ls(names)
 -         top_item = (top, os.stat(top))
 +         _ = os.stat(top)
--         stats_item_print(top_item)
+-         stats_item_print(top_item, args=args)
 +         print(top)
 -         sub_stats = {_: os.stat(os.path.join(top, _)) for _ in names}
 +
@@ -444,17 +461,17 @@ def reduce_ls_py_stats_to_names(py, module_py):
 + def some_names_ls(names, args):
 -             for item in stats.items():
 +             for name in names:
--                 stats_item_print(item)
+-                 stats_item_print(item, args=args)
 +                 print(name)
 -                 stats.items(), key=lambda _: (pathlib.Path(_[0]).suffix, _[0])
 +                 names, key=lambda _: (pathlib.Path(_]).suffix, _)
 -             for item in items:
 +             for name in names:
--                 stats_item_print(item)
+-                 stats_item_print(item, args=args)
 +                 print(name)
--                 for name in sorted(stats.items()):
+-                 for item in sorted(stats.items()):
 +                 for name in sorted(names):
--                     stats_item_print(item)
+-                     stats_item_print(item, args=args)
 +                     print(name)
 -             sorted_items = list(stats.items())
 +             cells = names
@@ -464,13 +481,15 @@ def reduce_ls_py_stats_to_names(py, module_py):
 +                 names, key=lambda _: (pathlib.Path(_).suffix, _)
 -                 sorted_items = sorted(stats.items())
 +                 cells = sorted(names)
--         cells = list(_[0] for _ in sorted_items)
+-             cells = list(_[0] for _ in sorted_items)
++
+-             cells = list(stats_item_format(_, args) for _ in sorted_items)
 +
 - def one_stat_ls(name, args):
 + def one_name_ls(name, args):
 -     item = (name, os.stat(name))
 +     _ = os.stat(name)
--     stats_item_print(item)
+-     stats_item_print(item, args=args)
 +     print(name)
     """
 
@@ -590,7 +609,7 @@ def one_dir_ls(top, args):
     if args.directory:
 
         top_item = (top, os.stat(top))
-        stats_item_print(top_item)
+        stats_item_print(top_item, args=args)
 
     if not args.directory:
 
@@ -610,17 +629,17 @@ def some_stats_ls(stats, args):  # noqa Flake8 C901 too complex
 
         if args.f:
             for item in stats.items():
-                stats_item_print(item)
+                stats_item_print(item, args=args)
         if args.X:
             items = sorted(
                 stats.items(), key=lambda _: (pathlib.Path(_[0]).suffix, _[0])
             )
             for item in items:
-                stats_item_print(item)
+                stats_item_print(item, args=args)
         if not args.f:
             if not args.X:
-                for name in sorted(stats.items()):
-                    stats_item_print(item)
+                for item in sorted(stats.items()):
+                    stats_item_print(item, args=args)
 
     if args.tall_columns:
 
@@ -648,7 +667,10 @@ def some_stats_ls(stats, args):  # noqa Flake8 C901 too complex
 
         # Pack names into columns
 
-        cells = list(_[0] for _ in sorted_items)
+        if not args.classify:
+            cells = list(_[0] for _ in sorted_items)
+        if args.classify:
+            cells = list(stats_item_format(_, args) for _ in sorted_items)
         chars = pack_cells_in_columns(cells, tty_columns=tty_columns, sep="  ")
         if chars:
             print(chars)
@@ -657,11 +679,52 @@ def some_stats_ls(stats, args):  # noqa Flake8 C901 too complex
 def one_stat_ls(name, args):
 
     item = (name, os.stat(name))
-    stats_item_print(item)
+    stats_item_print(item, args=args)
 
 
-def stats_item_print(item):
-    assert False
+def stats_item_print(item, args):
+
+    if not args.classify:
+        if not args.args.long_rows:
+
+            assert False
+
+    marked_name = item[0]
+    if args.classify:
+        marked_name = stats_item_format(item, args=args)
+    if not args.long_rows:
+        print(marked_name)
+
+    if args.long_rows:
+        assert False
+
+
+def stats_item_format(item, args):
+
+    if not args.classify:
+        assert False
+
+    (item_name, item_stat) = item
+
+    st_mode = item_stat.st_mode
+
+    filemode = stat.filemode(st_mode)
+    islnk = stat.S_ISLNK(st_mode)
+
+    if args.classify:
+
+        if filemode.startswith("d"):
+            mark = "/"
+        elif "x" in filemode:
+            mark = "*"
+        elif islnk:
+            mark = "@"
+        else:
+            mark = ""  # wrong mark when it should be socket as '=', or door as '>'
+
+    marked_name = item_name + mark
+
+    return marked_name
 
 
 def pack_cells_in_columns(cells, tty_columns, sep):

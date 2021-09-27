@@ -127,7 +127,10 @@ def _py_pick_def_lines(names, module_py):
 def py_add_imports(py, module_py):
     """Pick Import Lines from Module-Py that match Mentions by Py"""
 
-    names = sorted(set(re.findall(r"[A-Z_a-z][0-9A-Z_a-z]*", string=py)))
+    namedots = sorted(set(re.findall(r"[A-Z_a-z][0-9A-Z_a-z]*[.]", string=py)))
+    # wrong when module mentioned outside of a "f{module}." context
+
+    names = list(_[: -len(".")] for _ in namedots)
 
     import_lines = _py_pick_import_lines(names, module_py=module_py)
     import_py = "\n".join(import_lines)
