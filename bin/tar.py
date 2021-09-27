@@ -209,7 +209,7 @@ def argv__to_tar_py(argv):
 
     # Add its Import's and Func's, delete its Dead Code
 
-    py2 = tar_edit_py(
+    py2 = edit_tar_py(
         py=py1, args=args, module_py=module_py, commons=commons, specials=specials
     )
 
@@ -225,7 +225,8 @@ def argv__to_tar_py(argv):
     return py3
 
 
-def tar_edit_py(py, args, module_py, commons, specials):
+def edit_tar_py(py, args, module_py, commons, specials):
+    """Fill out the next layer of missing Source Lines of an Tar Py"""
 
     py1 = py
 

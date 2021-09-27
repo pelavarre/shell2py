@@ -105,7 +105,7 @@ usage: ls.py [--help] [-1 | -l | -C] [--headings] [--full-time] [-X | -f] [-a]
 show the files and dirs inside some dirs
 
 positional arguments:
-  TOP              a file or dir to list (default: '.')
+  TOP              a file or dir to show (default: show '.' current dir)
 
 optional arguments:
   --help           show this help message and exit
@@ -114,7 +114,7 @@ optional arguments:
   -C               show columns of names (default: True)
   --headings       insert a row of headings before the rows of '-l' details
   --full-time      stamp with a more precise date/time in the rows of '-l' details
-  -X               sort by ext (default: by name)
+  -X               sort by ext (default: sort by name)
   -f               do not sort
   -a, --all        hide no names (by showing the names that start with the '.' dot)
   -d, --directory  show the names of dirs (not the files and dirs inside)
@@ -132,6 +132,20 @@ examples:
   ls -1  # show each file or dir inside the current dir
   ls -C  # ask explicitly for the default output
   ls *  # show each file, then show each file or dir inside each child dir
+:
+shell2py ls Makefile
+import os
+
+
+def one_name_ls(name):
+
+    _ = os.stat(name)
+    print(name)
+
+
+one_name_ls("Makefile")
+bin/ls.py Makefile
+Makefile
 :
 shell2py ls -1
 import os

@@ -195,6 +195,9 @@ go_ls:
 	:
 	shell2py ls --help
 	:
+	shell2py ls Makefile
+	bin/ls.py Makefile
+	:
 	shell2py ls -1
 	bin/ls.py -1
 	:

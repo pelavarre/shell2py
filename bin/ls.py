@@ -8,7 +8,7 @@ usage: ls.py [--help] [-1 | -l | -C] [--headings] [--full-time] [-X | -f] [-a]
 show the files and dirs inside some dirs
 
 positional arguments:
-  TOP              a file or dir to list (default: '.')
+  TOP              a file or dir to show (default: show '.' current dir)
 
 optional arguments:
   --help           show this help message and exit
@@ -17,7 +17,7 @@ optional arguments:
   -C               show columns of names (default: True)
   --headings       insert a row of headings before the rows of '-l' details
   --full-time      stamp with a more precise date/time in the rows of '-l' details
-  -X               sort by ext (default: by name)
+  -X               sort by ext (default: sort by name)
   -f               do not sort
   -a, --all        hide no names (by showing the names that start with the '.' dot)
   -d, --directory  show the names of dirs (not the files and dirs inside)
@@ -49,6 +49,9 @@ import sys
 import _scraps_
 
 
+DENT = 4 * " "  # solve only the case of in/out/dent'ed by 4 columns
+
+
 def main():
 
     _scraps_.module_name__main(__name__, argv__to_py=argv__to_ls_py)
@@ -78,7 +81,10 @@ def compile_ls_argdoc():
     )
 
     parser.add_argument(
-        "tops", metavar="TOP", nargs="*", help="a file or dir to list (default: '.')"
+        "tops",
+        metavar="TOP",
+        nargs="*",
+        help="a file or dir to show (default: show '.' current dir)",
     )
 
     group_1lC = parser.add_mutually_exclusive_group()
@@ -109,7 +115,9 @@ def compile_ls_argdoc():
     )
 
     group_Xf = parser.add_mutually_exclusive_group()
-    group_Xf.add_argument("-X", action="count", help="sort by ext (default: by name)")
+    group_Xf.add_argument(
+        "-X", action="count", help="sort by ext (default: sort by name)"
+    )
     group_Xf.add_argument("-f", action="count", help="do not sort")
 
     parser.add_argument(
@@ -251,8 +259,8 @@ def args__to_top_level_ls_py(args):
                     calling_to = "def some_tops_ls(tops, topfiles, topdirs):"
                     calling_as_if = "def some_tops_ls(topfiles):"
                 else:
-                    py1 = "one_name_ls($TOP)"
-                    calling_to = "def one_name_ls(top):"
+                    py1 = "one_stat_ls(name=$TOP)"
+                    calling_to = "def one_stat_ls(name):"
                     calling_as_if = calling_to
 
         else:
@@ -290,17 +298,14 @@ def args__to_whole_ls_py(args, py1, calling):
     # Form enough more sourcelines, but keep only the chosen options
 
     py2 = py1
-    py2 = _scraps_.py_pick_lines(py=py2, module_py=module_py)
-    py2 = _scraps_.py_dedent_args(py=py2, args=args, argnames=argnames)
+    py2 = edit_ls_py(py=py2, args=args, argnames=argnames, module_py=module_py)
     assert py2 != py1, py1
 
     py3 = py2
-    py3 = _scraps_.py_pick_lines(py=py3, module_py=module_py)
-    py3 = _scraps_.py_dedent_args(py=py3, args=args, argnames=argnames)
+    py3 = edit_ls_py(py=py3, args=args, argnames=argnames, module_py=module_py)
 
     py4 = py3
-    py4 = _scraps_.py_pick_lines(py=py4, module_py=module_py)
-    py4 = _scraps_.py_dedent_args(py=py4, args=args, argnames=argnames)
+    py4 = edit_ls_py(py=py4, args=args, argnames=argnames, module_py=module_py)
 
     py5 = py4
     py5 = _scraps_.py_add_imports(py=py5, module_py=module_py)
@@ -309,13 +314,6 @@ def args__to_whole_ls_py(args, py1, calling):
 
     py6 = py5
 
-    if (not args.topfiles) or (not args.topfiles):
-        py6 = py6.replace(
-            "    some_names_ls(names=names)\n\n\ndef some_names_ls(names):\n", ""
-        )
-
-    py6 = py6.replace("def one_dir_ls():\n ", "def one_dir_ls():\n\n ")
-    py6 = py6.replace("def one_dir_ls(top):\n ", "def one_dir_ls(top):\n\n ")
     py6 = py6.replace(
         "# Choose an order of names\n ", "# Choose an order of names\n\n "
     )  # TODO: less custom styling
@@ -323,16 +321,52 @@ def args__to_whole_ls_py(args, py1, calling):
     while "\n\n\n " in py6:
         py6 = py6.replace("\n\n\n ", "\n\n ")
 
+    # Reduce Stats to Names, when not showing Stats
     # Emit an implicit $TOPS if called with an implicit $TOPS
 
     py7 = py6
+
+    if not args.classify and not args.long_rows:
+
+        py7 = reduce_ls_py_stats_to_names(py=py7, module_py=module_py)
+
+    if (not args.topfiles) or (not args.topdirs):
+
+        py7 = py7.replace(
+            "\n    some_names_ls(names)\n\n\ndef some_names_ls(names):\n", "\n"
+        )
+
+        old = "\nsome_names_ls(names)\n\n\ndef some_names_ls(names):\n"
+        if old in py7:
+
+            py7 = py7.replace(
+                old,
+                "\ndef some_names_ls(names):\n",
+            )
+
+            def_some_names_ls = "def some_names_ls(names):"
+            py7 = _scraps_.py_dedent(py=py7, line=def_some_names_ls, truthy=True)
+
+        py7 = py7.replace(
+            "\n\n\n    for name in sorted(names):\n",
+            "\n\n    for name in sorted(names):\n",
+        )
+
+    py7 = py7.replace(
+        "\n\n\n    some_names_ls(names)\n", "\n\n    some_names_ls(names)\n"
+    )
+
+    py7 = py7.replace("def one_dir_ls():\n ", "def one_dir_ls():\n\n ")
+    py7 = py7.replace("def one_dir_ls(top):\n ", "def one_dir_ls(top):\n\n ")
+
     if py1 == "one_dir_ls()":
+
         if args.tall_columns:
             py7 = py7.replace("(top)", "()")
         else:
-            line = "def one_dir_ls(top):"
-            assert line in py6
-            py7 = _scraps_.py_dedent(py6, line, truthy=True)
+            def_one_dir = "def one_dir_ls(top):"
+            assert def_one_dir in py7
+            py7 = _scraps_.py_dedent(py7, line=def_one_dir, truthy=True)
             py7 = py7.replace("import os\n\n\n\n", "import os\n\n")
             py7 = py7.replace("(top)", "()")
             py7 = py7.replace("os.stat(os.path.join(top, name))", "os.stat(name)")
@@ -342,6 +376,9 @@ def args__to_whole_ls_py(args, py1, calling):
     # Inject strings, last of all
 
     py8 = py7
+
+    while "\n\n\n    " in py8:  # also strip extra blank lines from inside Def's
+        py8 = py8.replace("\n\n\n    ", "\n\n    ")
 
     py8 = py8.replace("$TOPFILES", _scraps_.as_py_value(args.topfiles))
     py8 = py8.replace("$TOPDIRS", _scraps_.as_py_value(args.topdirs))
@@ -358,21 +395,173 @@ def args__to_whole_ls_py(args, py1, calling):
     # TODO: calculate DocStrings by Args
 
 
+def edit_ls_py(py, args, argnames, module_py):
+    """Fill out the next layer of missing Source Lines of an Ls Py"""
+
+    py1 = py
+    py1 = _scraps_.py_pick_lines(py=py1, module_py=module_py)
+    py1 = _scraps_.py_dedent_args(py=py1, args=args, argnames=argnames)
+
+    if not args.classify and not args.long_rows:
+        py1 = py1.replace("stats_item_print", "print")
+
+    return py1
+
+
+def reduce_ls_py_stats_to_names(py, module_py):
+    """Reduce Stats to Names"""
+
+    py1 = py
+
+    # List the pairs of changes
+
+    diffs = """
+-         tops_stats = dict()
++
+-             tops_stats[top] = os.stat(top)
++             _ = os.stat(top)
+-         some_stats_ls(stats=tops_stats)
++         some_names_ls(names=tops)
+-             topfiles_stats = dict()
++
+-                 topfiles_stats[topfile] = os.stat(topfile)
++                 _ = os.stat(topfile)
+-             some_stats_ls(stats=topfiles_stats)
++             some_names_ls(names=topfiles)
+-                 topdir_sub_stats = {_: os.stat(os.path.join(topdir, _)) for _ in names}
++
+-                 some_stats_ls(stats=topdir_sub_stats)
++                 some_names_ls(names)
+-         top_item = (top, os.stat(top))
++         _ = os.stat(top)
+-         stats_item_print(top_item)
++         print(top)
+-         sub_stats = {_: os.stat(os.path.join(top, _)) for _ in names}
++
+-         some_stats_ls(stats=sub_stats)
++         some_names_ls(names)
+- def some_stats_ls(stats, args):
++ def some_names_ls(names, args):
+-             for item in stats.items():
++             for name in names:
+-                 stats_item_print(item)
++                 print(name)
+-                 stats.items(), key=lambda _: (pathlib.Path(_[0]).suffix, _[0])
++                 names, key=lambda _: (pathlib.Path(_]).suffix, _)
+-             for item in items:
++             for name in names:
+-                 stats_item_print(item)
++                 print(name)
+-                 for name in sorted(stats.items()):
++                 for name in sorted(names):
+-                     stats_item_print(item)
++                     print(name)
+-             sorted_items = list(stats.items())
++             cells = names
+-             sorted_items = sorted(
++             cells = sorted(
+-                 stats.items(), key=lambda _: (pathlib.Path(_[0]).suffix, _[0])
++                 names, key=lambda _: (pathlib.Path(_).suffix, _)
+-                 sorted_items = sorted(stats.items())
++                 cells = sorted(names)
+-         cells = list(_[0] for _ in sorted_items)
++
+- def one_stat_ls(name, args):
++ def one_name_ls(name, args):
+-     item = (name, os.stat(name))
++     _ = os.stat(name)
+-     stats_item_print(item)
++     print(name)
+    """
+
+    difflines = diffs.splitlines()
+    assert not difflines[0], repr(difflines[0])
+    assert not difflines[-1].strip(), repr(difflines[-1].strip())
+    difflines = difflines[1:-1]
+
+    assert (len(difflines) % 2) == 0, len(difflines)
+
+    stripped_olds_set = set()
+    pairs = list(zip(difflines, difflines[1:]))[::2]
+    for pair in pairs:
+        (stale, fresh) = pair
+
+        # Pick out a pair of changes
+
+        assert stale.startswith("- "), (fresh, stale)
+        old = "\n" + stale[len("- ") :] + "\n"
+        assert old in module_py, (old, fresh)
+
+        assert fresh.startswith("+ ") or (fresh == "+"), (fresh, stale)
+        new = "\n" + fresh[len("+ ") :] + "\n"
+        if new == "\n\n":
+            new = "\n"
+
+        # Set up to apply the change as if inside a larger blank area
+
+        dented1 = "\n".join((DENT + _) for _ in py1.splitlines())
+        enclosed1 = "\n" + dented1 + "\n"
+
+        unrolled1 = enclosed1[len("\n") : -len("\n")]
+        undented1 = "\n".join(_[len(DENT) :] for _ in unrolled1.splitlines())
+
+        assert undented1 == py1
+
+        # Apply the change without regard to indentation
+
+        stripped_old = old
+        stripped_old = stripped_old.replace(", args)", ")")
+        stripped_old = stripped_old.replace("stats_item_print", "print")
+        stripped_old = stripped_old.strip() + "\n"
+
+        stripped_new = new
+        stripped_new = stripped_new.replace(", args)", ")")
+        stripped_new = stripped_new.replace("stats_item_print", "print")
+        stripped_new = stripped_new.strip() + "\n"
+
+        enclosed2 = enclosed1
+        if stripped_old in stripped_olds_set:
+            if stripped_old:
+                assert stripped_old not in py1, stripped_old
+        else:
+            stripped_olds_set.add(stripped_old)
+            enclosed2 = enclosed1.replace(stripped_old, stripped_new)
+
+        # Pick the changed text out of the larger blank area
+
+        unrolled2 = enclosed2[len("\n") : -len("\n")]
+        undented2 = "\n".join(_[len(DENT) :] for _ in unrolled2.splitlines())
+
+        py1 = undented2
+
+    # Strip trailing spaces in any line
+
+    py1 = "\n".join(_.rstrip() for _ in py1.splitlines())
+
+    # Change partial lines
+
+    py1 = py1.replace("one_stat_ls(name=", "one_name_ls(")
+
+    return py1
+
+
 def some_tops_ls(tops, topfiles, topdirs, args):  # noqa Flake8 C901 too complex
 
     if args.directory:
 
+        tops_stats = dict()
         for top in tops:
-            _ = os.stat(top)
-        some_names_ls(names=tops)
+            tops_stats[top] = os.stat(top)
+        some_stats_ls(stats=tops_stats)
 
     if not args.directory:
 
         if args.topfiles:
 
+            topfiles_stats = dict()
             for topfile in topfiles:
-                _ = os.stat(topfile)
-            some_names_ls(names=topfiles)
+                topfiles_stats[topfile] = os.stat(topfile)
+            some_stats_ls(stats=topfiles_stats)
 
         if args.topdirs:
 
@@ -392,14 +581,16 @@ def some_tops_ls(tops, topfiles, topdirs, args):  # noqa Flake8 C901 too complex
                     names = os.listdir(topdir)
                     names = list(_ for _ in names if not _.startswith("."))
 
-                some_names_ls(names=names)
+                topdir_sub_stats = {_: os.stat(os.path.join(topdir, _)) for _ in names}
+                some_stats_ls(stats=topdir_sub_stats)
 
 
 def one_dir_ls(top, args):
 
     if args.directory:
-        _ = os.listdir(top)
-        print(top)
+
+        top_item = (top, os.stat(top))
+        stats_item_print(top_item)
 
     if not args.directory:
 
@@ -409,35 +600,41 @@ def one_dir_ls(top, args):
             names = os.listdir(top)
             names = list(_ for _ in names if not _.startswith("."))
 
-        some_names_ls(names=names)
+        sub_stats = {_: os.stat(os.path.join(top, _)) for _ in names}
+        some_stats_ls(stats=sub_stats)
 
 
-def some_names_ls(names, args):  # noqa Flake8 C901 too complex
+def some_stats_ls(stats, args):  # noqa Flake8 C901 too complex
 
     if args.cells:
 
         if args.f:
-            for name in names:
-                print(name)
+            for item in stats.items():
+                stats_item_print(item)
         if args.X:
-            for name in sorted(names, key=lambda _: (pathlib.Path(_).suffix, _)):
-                print(name)
+            items = sorted(
+                stats.items(), key=lambda _: (pathlib.Path(_[0]).suffix, _[0])
+            )
+            for item in items:
+                stats_item_print(item)
         if not args.f:
             if not args.X:
-                for name in sorted(names):
-                    print(name)
+                for name in sorted(stats.items()):
+                    stats_item_print(item)
 
     if args.tall_columns:
 
         # Choose an order of names
 
         if args.f:
-            cells = names
+            sorted_items = list(stats.items())
         if args.X:
-            cells = sorted(names, key=lambda _: (pathlib.Path(_).suffix, _))
+            sorted_items = sorted(
+                stats.items(), key=lambda _: (pathlib.Path(_[0]).suffix, _[0])
+            )
         if not args.f:
             if not args.X:
-                cells = sorted(names)
+                sorted_items = sorted(stats.items())
 
         # Guess the width of the Terminal
 
@@ -451,15 +648,20 @@ def some_names_ls(names, args):  # noqa Flake8 C901 too complex
 
         # Pack names into columns
 
+        cells = list(_[0] for _ in sorted_items)
         chars = pack_cells_in_columns(cells, tty_columns=tty_columns, sep="  ")
         if chars:
             print(chars)
 
 
-def one_name_ls(name, args):
+def one_stat_ls(name, args):
 
-    _ = os.stat(name)
-    print(name)
+    item = (name, os.stat(name))
+    stats_item_print(item)
+
+
+def stats_item_print(item):
+    assert False
 
 
 def pack_cells_in_columns(cells, tty_columns, sep):
