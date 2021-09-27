@@ -141,36 +141,41 @@ def compile_ls_argdoc():
 def expand_ls_args(args):
     """Derive more Ls Args from the parsed Ls Args, or print some Help and quit"""
 
-    # Accept '--headings' and '--full-time' only in place of, or as modifiers of, '-l'
-
-    returncode = None
-    for extra in "headings full_time".split():
-        if vars(args)[extra]:
-            for mode in "long_rows C".split():
-                if vars(args)[mode]:
-
-                    sys.stderr.write(
-                        "ls.py: error: argument {}: not allowed with argument {}".format(
-                            extra, mode
-                        )
-                    )
-                    returncode = 2
-        if returncode:
-            sys.exit(2)
-
-    if args.headings or args.full_time:
-        args.long_rows = 1
-
     # Choose one or more 'TOPS', never zero
 
     args.some_tops = args.tops if args.tops else ".".split()
     args.last_top = args.some_tops[-1]  # last is first is only, when just one exists
 
     # Choose one of '[-1 | -l | -C]' always
+    # Accept '--headings' and '--full-time' only in place of, or as modifiers of, '-l'
+
+    if args.headings or args.full_time:
+        args.long_rows = 1
 
     args.tall_columns = args.C
     if not args.cells and not args.long_rows and not args.C:
         args.tall_columns = 1
+
+    returncode = None
+    for extra in "headings full_time".split():
+        extra_argname = dict(headings="--headings", full_time="--full-time")[extra]
+        if vars(args)[extra]:
+            for mode in "cells tall_columns".split():
+                mode_argname = dict(cells="-1", tall_columns="-C")[mode]
+                if vars(args)[mode]:
+                    returncode = 2
+
+                    sys.stderr.write(
+                        "ls.py: error: argument {}: not allowed with argument {}\n".format(
+                            extra_argname, mode_argname
+                        )
+                    )  # a la:  ls.py: error: argument -C: not allowed with argument -1
+
+    if returncode:
+        sys.exit(2)
+
+    output_formats = bool(args.cells) + bool(args.long_rows) + bool(args.tall_columns)
+    assert output_formats == 1, args
 
     # Parse the example Args now, to choose what Code to run later
 
