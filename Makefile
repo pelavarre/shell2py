@@ -152,17 +152,19 @@ go_find: .dotdir-and-dir
 # demo Python freaking over 'signal.SIGPIPE' not caught between 'exec' and 'print'
 sigpipe:
 	:
-	: Mac Terminal =>
+	: 'Mac Terminal =>'
 	:
-	:   'BrokenPipeError: [Errno 32] Broken pipe'
 	:   'Exception ignored in: <_io.TextIOWrapper'
-	:       "name='<stdout>' mode='w' encoding='utf-8'>'"
+	:       "name='<stdout>' mode='w' encoding='utf-8'>"
+	:   'BrokenPipeError: [Errno 32] Broken pipe'
 	:   'make: *** [sigpipe] Error 120'
-	:   'zsh: exit 2     make xyz'
+	:   'zsh: exit 2     make sigpipe'
 	:
 	python3 -c 'import signal; print(int(signal.SIGPIPE))'  # 13 == 141 - 128
+	:
 	(find ~ |head -3) || echo "+ exit $$?"  # + exit 141
-	(bin/find.py ~ |head -3) || echo "+ exit $$?"  # + exit 120
+	:
+	bin/find.py ~ |head -3  # + exit 120
 
 
 # test how Grep picks out Lines of Bytes of Stdin that match a Python Reg Ex
