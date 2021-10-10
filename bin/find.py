@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-usage: find.py [-h] [--maxdepth MAXDEPTH] [--name NAME] [--not] [--prune]
-               [--o] [--type D] [--print]
+usage: find.py [-h] [--maxdepth MAXDEPTH] [--name NAME] [--not] [--prune] [--o]
+               [--type D] [--print]
                [TOP]
 
 show a top dir of dirs, and the files and dirs it contains

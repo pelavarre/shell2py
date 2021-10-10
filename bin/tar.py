@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 """
-usage: tar.py [-h] [-t] [-x] [-c] [-v] [-k] [-f FILE] [-O] [--dict]
-              [PATTERN ...]
+usage: tar.py [-h] [-t] [-x] [-v] [-k] [-f FILE] [-O] [--dict] [PATTERN ...]
 
 walk the files and dirs found inside a top dir compressed as Tgz
 
@@ -13,7 +12,6 @@ optional arguments:
   -h, --help  show this help message and exit
   -t          dry run: list each dir or file at Stdout, but do Not extract them
   -x          write out a copy of each file, back to where it came from
-  -c          compress: take the so-called PATTERN's as FILE's and DIR's to read
   -v          say more: add details to '-t', or list each dir or file when extracted
   -k          stop extract from replacing files created before now
   -f FILE     name the file to uncompress
@@ -50,7 +48,6 @@ examples:
 import datetime as dt
 import fnmatch
 import os
-import re
 import sys
 import tarfile
 
@@ -92,13 +89,6 @@ def compile_tar_argdoc():
         action="count",
         default=0,
         help="write out a copy of each file, back to where it came from",
-    )
-
-    parser.add_argument(
-        "-c",
-        action="count",
-        default=0,
-        help="compress: take the so-called PATTERN's as FILE's and DIR's to read",
     )
 
     parser.add_argument(
@@ -146,32 +136,14 @@ def compile_tar_argdoc():
 def argv__to_tar_py(argv):
     """Write the Python for a Tar ArgV, else print some Help and quit"""
 
-    # Intercept '-h', '--h', '--he', ... '--help' as first arg,
-    # before requiring all args declared
-
-    _scraps_.parse_left_help_args(argv, doc=__doc__)
-
-    # Intercept '-c' inside first arg, if first arg is not a '--...' arg
-
-    if argv[1:]:
-        argv1 = argv[1]
-        if not argv1.startswith("--"):
-            if "c" in argv1:
-
-                altv = list(argv)
-                altv[0] = "tar"
-
-                py = _scraps_.argv__to_shline_py(altv)
-
-                return py
-
-    # Else fallback to parse the command line as per top-of-file Docstring
+    # Inject the "-" for options
 
     altv = list(argv)
-    if altv[1:]:
-        flags = altv[1]
-        if re.match(r"^[txvkf]+$", string=flags):
-            altv[1] = "-" + flags
+    if argv[1:]:
+        if not argv[1].startswith("-"):
+            altv[1] = "-" + argv[1]
+
+    # Parse args
 
     parser = compile_tar_argdoc()
     args = parser.parse_args(altv[1:])

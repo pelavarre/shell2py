@@ -11,7 +11,7 @@ default: py black flake8
 	: press Control+C if you meant:  make secretly
 	:
 	rm -fr .dotfile .dotdir/ dir/ dir.tgz file p.py
-	time make secretly 2>&1 |sed 's,  *$$,,' >make.log
+	time make secretly 2>&1 |grep -v '^make...: .*ing' |sed 's,  *$$,,' >make.log
 	sed -i~ "s,^> $$PWD/,," make.log
 	rm -fr make.log~
 	git diff make.log
@@ -56,7 +56,7 @@ sh:
 py:
 	:
 	:
-	echo 'for P in bin/*.py; do echo |python3 -m pdb $$P; done' |bash >/dev/tty
+	echo 'for P in bin/*.py; do echo |python3 -m pdb $$P |tail -n +4; done' |bash >/dev/tty
 
 
 # correct misleading placements of blanks, quotes, commas, parentheses, and such
@@ -126,7 +126,7 @@ go_find: .dotdir-and-dir
 	:
 	bin/shell2py find -type d
 	bin/find.py -type d >file
-	head -10 file
+	head -10 file |grep -v './.git/branches' |grep -v './.git/refs'
 	:
 	bin/shell2py find -name '.?*' -prune -o -type d -print
 	bin/find.py -name '.?*' -prune -o -type d -print >file
@@ -240,8 +240,36 @@ go_tar: go_tar_walk go_tar_pick
 	rm -fr dir/ dir.tgz p.py
 
 
+# walk a depth-first Tgz File of Dirs of Dirs of Files
+remake-dir-tgz:
+	rm -fr dir.tgz
+	make dir.tgz
 
+
+# make a depth-first Tgz File of Dirs of Dirs of Files
 dir.tgz:
+	:
+	:
+	rm -fr dir.tar.gz dir.tgz
+	:
+	rm -fr dir/
+	mkdir -p dir/a/b/c/
+	echo hello >dir/a/b/d
+	echo goodbye > dir/a/b/e
+	tar cf dir.tar  dir/
+	:
+	rm -fr dir/
+	mkdir -p dir/p/q/r/
+	tar rf dir.tar  dir/p/
+	gzip dir.tar
+	mv -i dir.tar.gz dir.tgz
+	:
+	tar xkf dir.tgz
+	tar tf dir.tgz
+
+
+# walk a native Tgz File of Dirs of Dirs of Files
+dump-tar-czf:
 	:
 	:
 	rm -fr dir/ dir.tgz
@@ -249,7 +277,9 @@ dir.tgz:
 	mkdir -p dir/a/b/c dir/p/q/r
 	echo hello >dir/a/b/d
 	echo goodbye > dir/a/b/e
-	bin/tar.py czf dir.tgz dir/
+	tar czf dir.tgz dir/
+	:
+	tar tf dir.tgz
 
 
 # test how Tar walks the Files and Dirs found inside a Top Dir compressed as Tgz

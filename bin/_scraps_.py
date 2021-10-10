@@ -198,8 +198,8 @@ def py_dedent_bool(py, name, truthy):
     py1 = py_dedent(py1, line=if_no_line, truthy=(not truthy))
 
     if not truthy:
-        py1 = py1.replace(f", {name})", ")")
-        py1 = py1.replace(f"({name})", "()")
+        py1 = py1.replace(", {name})".format(name=name), ")")
+        py1 = py1.replace("({name})".format(name=name), "()")
 
     return py1
 
@@ -510,15 +510,13 @@ def unified_diff_chars(a, b):
 def exit_unless_doc_eq(parser, file, doc):
     """Exit nonzero, unless __main__.__doc__ equals "parser.format_help()" """
 
-    got_file = __main__.__file__ if (file is None) else file
-    got_file = os.path.split(got_file)[-1]
-    got_file = "./{} --help".format(got_file)
+    # Fetch the two docs
 
     got_doc = __main__.__doc__ if (file is None) else doc
     got_doc = got_doc.strip()
 
     with_columns = os.getenv("COLUMNS")
-    os.environ["COLUMNS"] = str(80)
+    os.environ["COLUMNS"] = str(89)  # Black promotes 89 columns per line
     try:
         want_doc = parser.format_help()
     finally:
@@ -527,16 +525,31 @@ def exit_unless_doc_eq(parser, file, doc):
         else:
             os.environ["COLUMNS"] = with_columns
 
+    # Ignore Line-Break's jittering across Python Versions
+
+    (alt_got, alt_want) = (got_doc, want_doc)
+    if sys.version_info[:3] < (3, 9, 6):
+        alt_got = join_first_paragraph(got_doc)
+        alt_want = join_first_paragraph(want_doc)
+
+    # Count differences
+
+    got_file = __main__.__file__ if (file is None) else file
+    got_file = os.path.split(got_file)[-1]
+    got_file = "./{} --help".format(got_file)
+
     want_file = "argparse.ArgumentParser(..."
 
     diff_lines = list(
         difflib.unified_diff(
-            a=got_doc.splitlines(),
-            b=want_doc.splitlines(),
+            a=alt_got.splitlines(),
+            b=alt_want.splitlines(),
             fromfile=got_file,
             tofile=want_file,
         )
     )
+
+    # Exit if differences, but print them first
 
     if diff_lines:
 
@@ -544,6 +557,18 @@ def exit_unless_doc_eq(parser, file, doc):
         sys.stderr.write("\n".join(lines) + "\n")
 
         sys.exit(1)  # trust caller to log SystemExit exceptions well
+
+
+# deffed in many files  # missing from docs.python.org till Oct/2019 Python 3.8
+def join_first_paragraph(doc):
+    """Join by single spaces all the leading lines up to the first empty line"""
+
+    index = (doc + "\n\n").index("\n\n")
+    lines = doc[:index].splitlines()
+    chars = " ".join(_.strip() for _ in lines)
+    alt = chars + doc[index:]
+
+    return alt
 
 
 # deffed in many files  # missing from docs.python.org till Oct/2019 Python 3.8

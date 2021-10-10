@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-usage: ls.py [--help] [-1 | -l | -C] [--headings] [--full-time] [-X | -f] [-a]
-             [-d] [-F]
+usage: ls.py [--help] [-1 | -l | -C] [--headings] [--full-time] [-X | -f] [-a] [-d]
+             [-F]
              [TOP ...]
 
 show the files and dirs inside some dirs
