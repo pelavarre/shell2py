@@ -61,6 +61,7 @@ def argv__to_echo_py(argv):
 
     parser = compile_echo_argdoc()
     args = parser.parse_args(argv[1:])
+    _scraps_.args_cancel_pairs(args)
 
     echo_py_argv = "echo.py".split() + args.words
 

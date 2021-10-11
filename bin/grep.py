@@ -45,6 +45,7 @@ def parse_grep_args(argv):
     parser = compile_grep_argdoc()
 
     args = parser.parse_args(argv[1:])
+    _scraps_.args_cancel_pairs(args)
     if args.help:
         parser.print_help()
         sys.exit(0)

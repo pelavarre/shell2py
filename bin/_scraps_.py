@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Collect scraps of Code held in common by the Py near here, aka tools, utils, etc
 """
@@ -18,6 +20,73 @@ import textwrap
 
 def b():
     pdb.set_trace()
+
+
+#
+# Run some self-tests
+#
+
+
+def main():
+
+    _try_st_size_format_()
+
+    sys.stderr.write("_scraps_.py: tests passed\n")
+
+
+def _try_st_size_format_():
+
+    import ls
+
+    pairs = (
+        (0, "0B"),  # Linux 0B
+        #
+        (1023, "1023B"),  # Mac 1.0K, Linux 1023
+        (1024, "1K"),  # Mac/Linux 1.0K
+        (1025, "1.1K"),  # Mac 1.0K
+        (1126, "1.1K"),
+        (1127, "1.2K"),  # Mac 1.1K
+        #
+        (10035, "9.8K"),
+        (10036, "9.9K"),  # Mac 9.8K
+        (10137, "9.9K"),
+        (10138, "10K"),  # Mac 9.9K
+        (10240, "10K"),  # Mac/Linux 10K
+        (10241, "11K"),  # Mac 10K
+        #
+        (1047552, "1023K"),  # Mac 1.0M
+        (1047553, "1024K"),  # Mac/Linux 1.0M
+        (1048575, "1024K"),  # Mac/Linux 1.0M
+        (1048576, "1M"),  # Mac/Linux 1.0M
+        (1048577, "1.1M"),  # Mac 1.0M
+        (1153433, "1.1M"),
+        (1153434, "1.2M"),  # Mac 1.1M
+        #
+        (1072693248, "1023M"),
+        (1072693249, "1024M"),  # Mac/Linux 1.0G
+        (1073741823, "1024M"),  # Mac/Linux 1.0G
+        (1073741824, "1G"),  # Mac/Linux 1.0G
+        (1073741825, "1.1G"),  # Mac 1.0G
+        #
+    )
+
+    for pair in pairs:
+        (st_size, want) = pair
+        got = ls.st_size_format(st_size)
+        _assert_eq_(want, got=got)
+
+    if False:
+
+        fresh = got
+        while fresh == got:
+            st_size += 1
+            fresh = ls.st_size_format(st_size)
+        print(st_size, fresh)
+
+
+def _assert_eq_(want, got):
+
+    assert want == got, (want, got)
 
 
 #
@@ -392,6 +461,18 @@ class BrokenPipeErrorSink(contextlib.ContextDecorator):
             sys.exit(self.returncode)
 
 
+def args_cancel_pairs(args, exclusions=()):
+    """Cancel pairs of counted optional args"""
+
+    for (key, value) in vars(args).items():
+
+        if isinstance(value, int):  # from 'action="count"', 'type=int', etc
+            assert key not in exclusions, key
+            if value and not (value % 2):
+
+                vars(args)[key] = 0
+
+
 # deffed in many files  # missing from docs.python.org
 def c_pre_process(chars, cpp_vars):
     """Emulate the Linux 'cpp' C Programming Language Pre-Processor"""
@@ -699,6 +780,10 @@ def str_splitdent(line):
     dent = len_dent * " "
 
     return (dent, tail)
+
+
+if __name__ == "__main__":
+    main()
 
 
 # copied by: git clone https://github.com/pelavarre/shell2py.git

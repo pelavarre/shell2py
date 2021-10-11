@@ -147,6 +147,7 @@ def argv__to_tar_py(argv):
 
     parser = compile_tar_argdoc()
     args = parser.parse_args(altv[1:])
+    _scraps_.args_cancel_pairs(args)
     main.args = args
 
     module_py = _scraps_.module_name__readlines(__name__)

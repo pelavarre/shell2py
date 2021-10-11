@@ -18,7 +18,7 @@ default: py black flake8
 
 
 # run like default 'make', but stop at first fault, allow breakpoints, etc
-secretly: py black flake8 go gitadds banner
+secretly: py black flake8 self-test go gitadds banner
 	rm -fr .dotfile .dotdir/ dir/ dir.tgz file p.py
 	rm -fr bin/__pycache__/
 
@@ -73,6 +73,11 @@ flake8:
 	~/.venvs/pips/bin/flake8 --max-line-length=999 --max-complexity 10 --ignore=E203,W503 bin/*.py
 # --ignore=E203  # Black '[ : ]' rules over Flake8 E203 whitespace before ':'
 # --ignore=W503  # 2017 Pep 8 and Black over Flake8 W503 line break before binary op
+
+
+# try some quick self-tests
+self-test:
+	bin/_scraps_.py
 
 
 # call to test each piece of this Shell2Py package
@@ -222,6 +227,9 @@ go_ls:
 	bin/shell2py ls -1F *
 	bin/ls.py -1F *
 	bin/ls.py -F *
+	:
+	bin/shell2py ls -lh
+	bin/shell2py ls -h -l -lh -1
 
 
 # test how Tac shows the lines of a file, but in reverse order

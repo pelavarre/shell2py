@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-usage: ls.py [--help] [-1 | -l | -C] [--headings] [--full-time] [-X | -f] [-a] [-d]
-             [-F]
+usage: ls.py [--help] [-1] [-l] [-C] [-h] [--headings] [--full-time] [-X | -f] [-a]
+             [-d] [-F]
              [TOP ...]
 
 show the files and dirs inside some dirs
@@ -15,8 +15,9 @@ optional arguments:
   -1               show one name per line
   -l               show details of perms, links, user, group, bytes, stamp, name
   -C               show columns of names (default: True)
-  --headings       insert a row of headings before the rows of '-l' details
-  --full-time      stamp with a more precise date/time in the rows of '-l' details
+  -h               count as metric binary size enough ('BKMGTPEZY') in rows of '-l'
+  --headings       insert a row of headings before rows of '-l'
+  --full-time      stamp date/time more precise than hour/minute into rows of '-l'
   -X               sort by ext (default: sort by name)
   -f               do not sort
   -a, --all        hide no names (by showing the names that start with the '.' dot)
@@ -26,8 +27,10 @@ optional arguments:
 quirks:
   shows columns like Linux, separated by two spaces, not equal width like Mac
   quits at first top found, doesn't show all not found like Linux or Mac
-  shows user and group as "." dot when same as $HOME
-  actually doesn't yet know how to mark socket as '=', nor door as '>'
+  shows user and group as "." dot when same as current user and current group
+  marks 0..1023 bytes as '0B"..'1023B', 1024 as '1K', 1025 as '1.1K' etc, for '-h'
+  defines '--headings', and doesn't infer '-l' from '--full-time', unlike Linux
+  actually doesn't yet know how to mark socket as '=', nor door as '>', for '-F'
   writes less code when given just dirs, or just files, or just one top
 
 examples:
@@ -38,7 +41,8 @@ examples:
 """
 
 # reserve 'ls --he' to quit via 'ambiguous option: --he could match --help, --headings'
-# reserve 'ls -hl' to mean speak in humane units: 'B'yte, 'k'ibi, 'M'ebi, etc
+
+# TODO: solve 'ls -lh -rS *.out' to mean:  ls.py -lh -f $(ls -rS *.out)
 
 
 import argparse
@@ -67,6 +71,7 @@ def parse_ls_args(argv):
     parser = compile_ls_argdoc()
 
     args = parser.parse_args(argv[1:])
+    _scraps_.args_cancel_pairs(args)
     if args.help:
         parser.print_help()
         sys.exit(0)
@@ -91,31 +96,35 @@ def compile_ls_argdoc():
         help="a file or dir to show (default: show '.' current dir)",
     )
 
-    group_1lC = parser.add_mutually_exclusive_group()
-    group_1lC.add_argument(
+    parser.add_argument(
         "-1", dest="cells", action="count", help="show one name per line"
     )
-    group_1lC.add_argument(
+    parser.add_argument(
         "-l",
         dest="long_rows",  # duck Flake8 E741 ambiguous variable name 'l'
         action="count",
         help="show details of perms, links, user, group, bytes, stamp, name",
     )
-    group_1lC.add_argument(
+    parser.add_argument(
         "-C",
         action="count",
         help="show columns of names (default: True)",
     )
 
     parser.add_argument(
+        "-h",
+        action="count",
+        help="count as metric binary size enough ('BKMGTPEZY') in rows of '-l'",
+    )
+    parser.add_argument(
         "--headings",
         action="count",
-        help="insert a row of headings before the rows of '-l' details",
+        help="insert a row of headings before rows of '-l'",
     )
     parser.add_argument(
         "--full-time",
         action="count",
-        help="stamp with a more precise date/time in the rows of '-l' details",
+        help="stamp date/time more precise than hour/minute into rows of '-l'",
     )
 
     group_Xf = parser.add_mutually_exclusive_group()
@@ -160,36 +169,29 @@ def expand_ls_args(args):
     args.some_tops = args.tops if args.tops else ".".split()
     args.last_top = args.some_tops[-1]  # last is first is only, when just one exists
 
-    # Choose one of '[-1 | -l | -C]' always
-    # Accept '--headings' and '--full-time' only in place of, or as modifiers of, '-l'
+    # Choose exactly one of the '[-1 | -l | -C]' output styles
+    # Quietly ignore the "-h", "--headings", or "--full-time" hints, except when "-l"
 
-    if args.headings or args.full_time:
-        args.long_rows = 1
+    styles = list()
+    if args.cells:
+        styles.append("-1")
+    if args.long_rows:
+        styles.append("-l")
+    if args.C:
+        styles.append("-C")
+
+    if len(styles) > 1:
+        sys.stderr.write(
+            "ls.py: error: argument {}: not allowed with argument {}\n".format(
+                styles[0], styles[-1]
+            )
+        )  # a la:  ls.py: error: argument -C: not allowed with argument -1
+
+        sys.exit(2)
 
     args.tall_columns = args.C
     if not args.cells and not args.long_rows and not args.C:
         args.tall_columns = 1
-
-    returncode = None
-    for extra in "headings full_time".split():
-        extra_argname = dict(headings="--headings", full_time="--full-time")[extra]
-        if vars(args)[extra]:
-            for mode in "cells tall_columns".split():
-                mode_argname = dict(cells="-1", tall_columns="-C")[mode]
-                if vars(args)[mode]:
-                    returncode = 2
-
-                    sys.stderr.write(
-                        "ls.py: error: argument {}: not allowed with argument {}\n".format(
-                            extra_argname, mode_argname
-                        )
-                    )  # a la:  ls.py: error: argument -C: not allowed with argument -1
-
-    if returncode:
-        sys.exit(2)
-
-    output_formats = bool(args.cells) + bool(args.long_rows) + bool(args.tall_columns)
-    assert output_formats == 1, args
 
     # Parse the example Args now, to choose what Code to run later
 
@@ -225,8 +227,9 @@ def argv__to_ls_py(argv):
 
     # Don't yet translate Usage: '[--headings] [--full-time]'
 
-    if args.headings or args.full_time:
-        return
+    if args.long_rows:
+        if args.headings or args.full_time:
+            return
 
     # Write the Source
 
@@ -753,11 +756,12 @@ def stats_item_row(item, args):
     (item_name, item_stat) = item
 
     st_mode = item_stat.st_mode
-    filemode = stat.filemode(st_mode)
+    perms = stat.filemode(st_mode)
     islnk = stat.S_ISLNK(st_mode)
     _ = islnk  # FIXME
 
-    links = str(item_stat.st_nlink)
+    st_nlink = item_stat.st_nlink
+    links = "." if (st_nlink == 1) else str(st_nlink)
 
     gid_uid = (os.getgid(), os.getuid())
 
@@ -771,23 +775,79 @@ def stats_item_row(item, args):
     group_name = grp.getgrgid(st_gid).gr_name
     group = "." if (st_gid_uid == gid_uid) else group_name
 
+    st_size = item_stat.st_size
+    if not args.h:
+        len_bytes = "." if perms.startswith("d") else str(st_size)
+    if args.h:
+        len_bytes = "." if perms.startswith("d") else st_size_format(st_size)
+
     st_mtime = item_stat.st_mtime
     item_datetime = dt.datetime.fromtimestamp(st_mtime)
-
-    len_bytes = "." if filemode.startswith("d") else str(item_stat.st_size)
     stamp = item_datetime.strftime("%h %d %H:%M")
     if item_datetime.year != dt.datetime.now().year:
         stamp = item_datetime.strftime("%h %d %Y")
         # TODO: "%h %d %Y" for more than 6 months away
 
     if not args.classify:
-        marked_name = item[0]
+        name = item[0]
+        row = (perms, links, user, group, len_bytes, stamp, name)
     if args.classify:
         marked_name = stats_item_format(item, args=args)
-
-    row = (filemode, links, user, group, len_bytes, stamp, marked_name)
+        row = (perms, links, user, group, len_bytes, stamp, marked_name)
 
     return row
+
+
+def st_size_format(st_size):
+
+    multiples = "KMGTPEZY"  # kibi, mebi, gibi, tibi, pebi, exbi, zebi, yebi
+    unit = "B"
+
+    assert st_size >= 0, st_size
+    assert len(unit) == 1, repr(unit)
+    assert unit not in multiples, (unit, multiples)
+
+    marks = unit + multiples
+
+    # Format zero
+
+    str_st_size = "0" + unit
+    if not st_size:
+
+        return str_st_size
+
+    # Else format exact binary multiples
+
+    logki = next(_ for _ in range(len(marks)) if st_size < (1 << (10 * _))) - 1
+    factor = 1 << (10 * logki)
+    mark = marks[logki]
+
+    div = st_size // factor
+    mod = st_size % factor
+
+    assert 0 < div < (1 << 10)
+
+    str_st_size = str(div) + mark
+    if not mod:
+
+        return str_st_size
+
+    # Else format rounded up to tenths of a binary multiple
+
+    if div < 10:
+
+        for tenth in range(1, 10):
+            more = (tenth * factor) // 10
+            str_st_size = "{}.{}{}".format(div, tenth, mark)
+            if more >= mod:
+
+                return str_st_size
+
+    # Else format rounded up to two, three, or four digits times a binary multiple
+
+    str_st_size = str(div + 1) + mark
+
+    return str_st_size
 
 
 def stats_item_format(item, args):
@@ -798,14 +858,14 @@ def stats_item_format(item, args):
     (item_name, item_stat) = item
     st_mode = item_stat.st_mode
 
-    filemode = stat.filemode(st_mode)
+    perms = stat.filemode(st_mode)
     islnk = stat.S_ISLNK(st_mode)
 
     if args.classify:
 
-        if filemode.startswith("d"):
+        if perms.startswith("d"):
             mark = "/"
-        elif "x" in filemode:
+        elif "x" in perms:
             mark = "*"
         elif islnk:
             mark = "@"  # TODO: pass tests of this
@@ -829,7 +889,7 @@ def format_rows_as_columns(rows):
         str.ljust,
         str.ljust,
     )
-    # justs for (filemode, links, user, group, len_bytes, stamp, marked_naem)
+    # justs for (perms, links, user, group, len_bytes, stamp, marked_naem)
 
     columns = list(zip(*rows))
     widths = list(max(len(_) for _ in c) for c in columns)

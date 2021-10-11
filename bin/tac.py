@@ -51,6 +51,7 @@ def argv__to_tac_py(argv):
 
     parser = compile_tac_argdoc()
     args = parser.parse_args(argv[1:])
+    _scraps_.args_cancel_pairs(args)
     module_py = _scraps_.module_name__readlines(__name__)
 
     files = args.files if args.files else "-".split()

@@ -9,6 +9,8 @@ All done! ✨ 🍰 ✨
 :
 :
 ~/.venvs/pips/bin/flake8 --max-line-length=999 --max-complexity 10 --ignore=E203,W503 bin/*.py
+bin/_scraps_.py
+_scraps_.py: tests passed
 :
 :
 bin/shell2py || echo "+ exit $?"
@@ -62,8 +64,8 @@ examples:
 :
 :
 bin/shell2py ls --help
-usage: ls.py [--help] [-1 | -l | -C] [--headings] [--full-time] [-X | -f] [-a]
-             [-d] [-F]
+usage: ls.py [--help] [-1] [-l] [-C] [-h] [--headings] [--full-time] [-X | -f]
+             [-a] [-d] [-F]
              [TOP ...]
 
 show the files and dirs inside some dirs
@@ -76,8 +78,9 @@ optional arguments:
   -1               show one name per line
   -l               show details of perms, links, user, group, bytes, stamp, name
   -C               show columns of names (default: True)
-  --headings       insert a row of headings before the rows of '-l' details
-  --full-time      stamp with a more precise date/time in the rows of '-l' details
+  -h               count as metric binary size enough ('BKMGTPEZY') in rows of '-l'
+  --headings       insert a row of headings before rows of '-l'
+  --full-time      stamp date/time more precise than hour/minute into rows of '-l'
   -X               sort by ext (default: sort by name)
   -f               do not sort
   -a, --all        hide no names (by showing the names that start with the '.' dot)
@@ -87,8 +90,10 @@ optional arguments:
 quirks:
   shows columns like Linux, separated by two spaces, not equal width like Mac
   quits at first top found, doesn't show all not found like Linux or Mac
-  shows user and group as "." dot when same as $HOME
-  actually doesn't yet know how to mark socket as '=', nor door as '>'
+  shows user and group as "." dot when same as current user and current group
+  marks 0..1023 bytes as '0B"..'1023B', 1024 as '1K', 1025 as '1.1K' etc, for '-h'
+  defines '--headings', and doesn't infer '-l' from '--full-time', unlike Linux
+  actually doesn't yet know how to mark socket as '=', nor door as '>', for '-F'
   writes less code when given just dirs, or just files, or just one top
 
 examples:
@@ -320,12 +325,12 @@ def stats_item_format(item):
     (item_name, item_stat) = item
     st_mode = item_stat.st_mode
 
-    filemode = stat.filemode(st_mode)
+    perms = stat.filemode(st_mode)
     islnk = stat.S_ISLNK(st_mode)
 
-    if filemode.startswith("d"):
+    if perms.startswith("d"):
         mark = "/"
-    elif "x" in filemode:
+    elif "x" in perms:
         mark = "*"
     elif islnk:
         mark = "@"  # TODO: pass tests of this
@@ -345,7 +350,7 @@ make.log
 
 bin:
 __pycache__/
-_scraps_.py
+_scraps_.py*
 dig.py*
 echo.py*
 find.py*
@@ -363,7 +368,169 @@ Makefile  README.md  make.log
 
 bin:
 __pycache__/  dig.py*   find.py*  less.py*  scp.py*    shell2py.py*  tac.py*
-_scraps_.py   echo.py*  grep.py*  ls.py*    shell2py*  ssh.py*       tar.py*
+_scraps_.py*  echo.py*  grep.py*  ls.py*    shell2py*  ssh.py*       tar.py*
+:
+bin/shell2py ls -lh
+import datetime as dt
+import grp
+import os
+import pwd
+import stat
+
+
+def one_dir_ls():
+
+    names = os.listdir()
+    names = list(_ for _ in names if not _.startswith("."))
+
+    sub_stats = {_: os.stat(_) for _ in names}
+    some_stats_ls(stats=sub_stats)
+
+
+def some_stats_ls(stats):
+
+    print("total .")  # TODO: count blocks of 512B each
+
+    rows = list()
+    for item in sorted(stats.items()):
+        row = stats_item_row(item)
+        rows.append(row)
+
+    chars = format_rows_as_columns(rows)
+    print(chars)
+
+
+def stats_item_row(item):
+
+    (item_name, item_stat) = item
+
+    st_mode = item_stat.st_mode
+    perms = stat.filemode(st_mode)
+    islnk = stat.S_ISLNK(st_mode)
+    _ = islnk  # FIXME
+
+    st_nlink = item_stat.st_nlink
+    links = "." if (st_nlink == 1) else str(st_nlink)
+
+    gid_uid = (os.getgid(), os.getuid())
+
+    st_gid = item_stat.st_gid
+    st_uid = item_stat.st_uid
+    st_gid_uid = (st_gid, st_uid)
+
+    user_name = pwd.getpwuid(st_uid).pw_name
+    user = "." if (st_gid_uid == gid_uid) else user_name
+
+    group_name = grp.getgrgid(st_gid).gr_name
+    group = "." if (st_gid_uid == gid_uid) else group_name
+
+    st_size = item_stat.st_size
+    len_bytes = "." if perms.startswith("d") else st_size_format(st_size)
+
+    st_mtime = item_stat.st_mtime
+    item_datetime = dt.datetime.fromtimestamp(st_mtime)
+    stamp = item_datetime.strftime("%h %d %H:%M")
+    if item_datetime.year != dt.datetime.now().year:
+        stamp = item_datetime.strftime("%h %d %Y")
+        # TODO: "%h %d %Y" for more than 6 months away
+
+    name = item[0]
+    row = (perms, links, user, group, len_bytes, stamp, name)
+
+    return row
+
+
+def st_size_format(st_size):
+
+    multiples = "KMGTPEZY"  # kibi, mebi, gibi, tibi, pebi, exbi, zebi, yebi
+    unit = "B"
+
+    assert st_size >= 0, st_size
+    assert len(unit) == 1, repr(unit)
+    assert unit not in multiples, (unit, multiples)
+
+    marks = unit + multiples
+
+    # Format zero
+
+    str_st_size = "0" + unit
+    if not st_size:
+
+        return str_st_size
+
+    # Else format exact binary multiples
+
+    logki = next(_ for _ in range(len(marks)) if st_size < (1 << (10 * _))) - 1
+    factor = 1 << (10 * logki)
+    mark = marks[logki]
+
+    div = st_size // factor
+    mod = st_size % factor
+
+    assert 0 < div < (1 << 10)
+
+    str_st_size = str(div) + mark
+    if not mod:
+
+        return str_st_size
+
+    # Else format rounded up to tenths of a binary multiple
+
+    if div < 10:
+
+        for tenth in range(1, 10):
+            more = (tenth * factor) // 10
+            str_st_size = "{}.{}{}".format(div, tenth, mark)
+            if more >= mod:
+
+                return str_st_size
+
+    # Else format rounded up to two, three, or four digits times a binary multiple
+
+    str_st_size = str(div + 1) + mark
+
+    return str_st_size
+
+
+def format_rows_as_columns(rows):
+    """Format Rows of Cells as Vertically Aligned Columns of Cells"""
+
+    justs = (
+        str.ljust,
+        str.rjust,
+        str.ljust,
+        str.ljust,
+        str.rjust,
+        str.ljust,
+        str.ljust,
+    )
+    # justs for (perms, links, user, group, len_bytes, stamp, marked_naem)
+
+    columns = list(zip(*rows))
+    widths = list(max(len(_) for _ in c) for c in columns)
+
+    assert len(columns) == len(widths) == len(justs)
+
+    padded_columns = list()
+    for (column, just, width) in zip(columns, justs, widths):
+        padded_column = list(just(_, width) for _ in column)
+        padded_columns.append(padded_column)
+
+    padded_rows = list(zip(*padded_columns))
+    chars = "\n".join("  ".join(_).rstrip() for _ in padded_rows)
+
+    return chars
+
+
+one_dir_ls()
+bin/shell2py ls -h -l -lh -1
+import os
+
+names = os.listdir()
+names = list(_ for _ in names if not _.startswith("."))
+
+for name in sorted(names):
+    print(name)
 :
 :
 bin/shell2py echo 'Hello, Echo World!'

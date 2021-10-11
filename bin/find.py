@@ -62,6 +62,7 @@ def parse_find_args(argv):
     # Parse args
 
     args = parser.parse_args(altv[1:])
+    _scraps_.args_cancel_pairs(args, exclusions="maxdepth".split())
 
     # Close out
 
