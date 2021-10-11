@@ -68,7 +68,7 @@ def main():
 
 def compile_tar_argdoc():
 
-    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
+    parser = _scraps_.compile_argdoc(epi="quirks:")
 
     parser.add_argument(
         "patterns",
@@ -128,7 +128,7 @@ def compile_tar_argdoc():
 
     _scraps_.parser_patch_usage(parser, metavar="PATTERN", nargs="*")
 
-    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
+    _scraps_.exit_unless_doc_eq(parser)
 
     return parser
 

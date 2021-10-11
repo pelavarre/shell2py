@@ -55,7 +55,7 @@ def parse_grep_args(argv):
 def compile_grep_argdoc():
     """Convert the Grep Main Doc to an ArgParse Parser"""
 
-    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__, drop_help=True)
+    parser = _scraps_.compile_argdoc(epi="quirks:", drop_help=True)
     parser.add_argument(
         "--help", action="count", help="show this help message and exit"
     )
@@ -82,7 +82,7 @@ def compile_grep_argdoc():
         help="pick only lines of reg ex as a whole word, not next to more word chars",
     )
 
-    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
+    _scraps_.exit_unless_doc_eq(parser)
 
     return parser
 

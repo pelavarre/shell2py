@@ -79,7 +79,7 @@ def parse_ls_args(argv):
 def compile_ls_argdoc():
     """Convert the Ls Main Doc to an ArgParse Parser"""
 
-    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__, drop_help=True)
+    parser = _scraps_.compile_argdoc(epi="quirks:", drop_help=True)
     parser.add_argument(
         "--help", action="count", help="show this help message and exit"
     )
@@ -147,7 +147,7 @@ def compile_ls_argdoc():
 
     _scraps_.parser_patch_usage(parser, metavar="TOP", nargs="*")
 
-    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
+    _scraps_.exit_unless_doc_eq(parser)
 
     return parser
 

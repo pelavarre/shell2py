@@ -33,7 +33,7 @@ def main():
 
 def compile_tac_argdoc():
 
-    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
+    parser = _scraps_.compile_argdoc(epi="quirks:")
 
     parser.add_argument(
         "files", metavar="FILE", nargs="*", help="a file to copy out (default: stdin)"
@@ -41,7 +41,7 @@ def compile_tac_argdoc():
 
     _scraps_.parser_patch_usage(parser, metavar="FILE", nargs="*")
 
-    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
+    _scraps_.exit_unless_doc_eq(parser)
 
     return parser
 

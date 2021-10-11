@@ -80,7 +80,7 @@ def parse_find_args(argv):
 def compile_find_argdoc():
     """Convert the Find Main Doc to an ArgParse Parser"""
 
-    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
+    parser = _scraps_.compile_argdoc(epi="quirks:")
 
     parser.add_argument(
         "top", metavar="TOP", nargs="?", help="where to start looking (default: '.')"
@@ -135,7 +135,7 @@ def compile_find_argdoc():
         help="show names not pruned, when asked to '-prune -o -print'",
     )
 
-    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
+    _scraps_.exit_unless_doc_eq(parser)
 
     return parser
 

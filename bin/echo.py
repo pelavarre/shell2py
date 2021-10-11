@@ -36,7 +36,7 @@ def main():
 def compile_echo_argdoc():
     """Convert the Echo Main Doc to an ArgParse Parser"""
 
-    parser = _scraps_.compile_argdoc(epi="quirks:", doc=__doc__)
+    parser = _scraps_.compile_argdoc(epi="quirks:")
 
     parser.add_argument(
         "-n", action="count", help="show just the words, don't add a line-break"
@@ -51,7 +51,7 @@ def compile_echo_argdoc():
 
     _scraps_.parser_patch_usage(parser, metavar="WORD", nargs="*")
 
-    _scraps_.exit_unless_doc_eq(parser, file=__file__, doc=__doc__)
+    _scraps_.exit_unless_doc_eq(parser)
 
     return parser
 

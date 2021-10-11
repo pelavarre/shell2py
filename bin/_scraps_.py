@@ -2,11 +2,11 @@
 Collect scraps of Code held in common by the Py near here, aka tools, utils, etc
 """
 
-import __main__
 import argparse
 import ast
 import contextlib
 import difflib
+import inspect
 import os
 import pdb
 import re
@@ -472,19 +472,21 @@ def _cpp_get(cpp_vars, word):
 
 
 # deffed in many files  # missing from docs.python.org
-def compile_argdoc(epi, doc=None, drop_help=None):
+def compile_argdoc(epi, drop_help=None):
     """Construct the 'argparse.ArgumentParser' with Epilog but without Arguments"""
 
-    as_doc = __main__.__doc__ if (doc is None) else doc
+    f = inspect.currentframe()
+    module = inspect.getmodule(f.f_back)
+    module_doc = module.__doc__
 
-    prog = as_doc.strip().splitlines()[0].split()[1]
+    prog = module_doc.strip().splitlines()[0].split()[1]
 
     description = list(
-        _ for _ in as_doc.strip().splitlines() if _ and not _.startswith(" ")
+        _ for _ in module_doc.strip().splitlines() if _ and not _.startswith(" ")
     )[1]
 
-    epilog_at = as_doc.index(epi)
-    epilog = as_doc[epilog_at:]
+    epilog_at = module_doc.index(epi)
+    epilog = module_doc[epilog_at:]
 
     parser = argparse.ArgumentParser(
         prog=prog,
@@ -507,13 +509,17 @@ def unified_diff_chars(a, b):
 
 
 # deffed in many files  # missing from docs.python.org
-def exit_unless_doc_eq(parser, file, doc):
+def exit_unless_doc_eq(parser):
     """Exit nonzero, unless __main__.__doc__ equals "parser.format_help()" """
+
+    f = inspect.currentframe()
+    module = inspect.getmodule(f.f_back)
+    module_doc = module.__doc__
+    module_file = f.f_back.f_code.co_filename  # more available than 'module.__file__'
 
     # Fetch the two docs
 
-    got_doc = __main__.__doc__ if (file is None) else doc
-    got_doc = got_doc.strip()
+    got_doc = module_doc.strip()
 
     with_columns = os.getenv("COLUMNS")
     os.environ["COLUMNS"] = str(89)  # Black promotes 89 columns per line
@@ -534,7 +540,7 @@ def exit_unless_doc_eq(parser, file, doc):
 
     # Count differences
 
-    got_file = __main__.__file__ if (file is None) else file
+    got_file = module_file
     got_file = os.path.split(got_file)[-1]
     got_file = "./{} --help".format(got_file)
 
