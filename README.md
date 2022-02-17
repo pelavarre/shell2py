@@ -1,7 +1,35 @@
 # shell2py
 Let you paste fragments of Bash into Python, by cleaning up the Python syntax for you
 
-## Demo
+## Teaser
+
+After you discover why you care, then you can see this too
+
+    % ls -1      
+    Makefile
+    README.md
+    bin
+    make.log
+    % 
+
+    % bin/ls.py -1
+    Makefile
+    README.md
+    bin
+    make.log
+    % 
+
+    % shell2py bin/ls.py -1
+    import os
+    
+    names = os.listdir()
+    names = list(_ for _ in names if not _.startswith("."))
+    
+    for name in sorted(names):
+        print(name)
+    % 
+
+## Same demo, but with all the steps spelled out for you to try now
 
 Like if you say
 
