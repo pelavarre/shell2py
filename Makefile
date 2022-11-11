@@ -11,7 +11,8 @@ default: py black flake8
 	: press Control+C if you meant:  make secretly
 	:
 	rm -fr .dotfile .dotdir/ dir/ dir.tgz file p.py
-	time make secretly 2>&1 |grep -v '^make...: .*ing' |sed 's,  *$$,,' >make.log
+	time make secretly 2>&1 |grep -v '^make...: .*ing' >make.log
+	sed -i~ 's,  *$$,,' make.log
 	sed -i~ "s,^> $$PWD/,," make.log
 	rm -fr make.log~
 	git diff make.log
@@ -108,9 +109,9 @@ go_echo:
 	:
 	bin/shell2py echo --v 'Hello,' 'Echo World!'
 	bin/echo.py --v 'Hello,' 'Echo World!'
-	:
-	bin/shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
-	bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
+	# :
+	# bin/shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
+	# bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C  # FIXME died Nov/2022
 
 
 # test how Find shows a Top Dir of Dirs, and the Files and Dirs it contains

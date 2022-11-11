@@ -619,6 +619,9 @@ def exit_unless_doc_eq(parser):
         alt_got = join_first_paragraph(got_doc)
         alt_want = join_first_paragraph(want_doc)
 
+    alt_got = alt_got.replace("\noptional arguments:\n", "\noptions:\n")
+    alt_want = alt_want.replace("\noptional arguments:\n", "\noptions:\n")
+
     # Count differences
 
     got_file = module_file

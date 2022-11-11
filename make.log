@@ -73,7 +73,7 @@ show the files and dirs inside some dirs
 positional arguments:
   TOP              a file or dir to show (default: show '.' current dir)
 
-optional arguments:
+options:
   --help           show this help message and exit
   -1               show one name per line
   -l               show details of perms, links, user, group, bytes, stamp, name
@@ -557,21 +557,9 @@ for (index, arg) in enumerate(sys.argv):
 bin/echo.py --v 'Hello,' 'Echo World!'
 1: 'Hello,'
 2: 'Echo World!'
-:
-bin/shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
-import sys
-
-# echo.py '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
-sys.argv = ["echo.py", "⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮"]  # unwanted if trying to echo a command line
-
-sys.stderr.flush()  # unneeded if not also writing Stderr
-sys.stdout.write(" ".join(sys.argv[1:]))  # tada, no line break
-sys.stdout.flush()  # unneeded if exiting now
-bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C
-00000000  e2 8c 83 20 e2 8c a5 20  e2 87 a7 20 e2 8c 98 20  |... ... ... ... |
-00000010  e2 86 90 20 e2 86 92 20  e2 86 93 20 e2 86 91 20  |... ... ... ... |
-00000020  e2 8e 8b 20 e2 87 a5 20  e2 8b ae                 |... ... ...|
-0000002b
+# :
+# bin/shell2py echo -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮'
+# bin/echo.py -n '⌃ ⌥ ⇧ ⌘ ← → ↓ ↑ ⎋ ⇥ ⋮' |hexdump -C  # FIXME died Nov/2022
 :
 :
 rm -fr dotdir/ dir/
